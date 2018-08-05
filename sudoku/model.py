@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import (
     AnyStr,
+    Iterable,
     List,
     Optional,
     Tuple,
@@ -64,8 +65,12 @@ class Sudoku:
         column, row = item
         return self.cells[row - 1][column.value - 1]
 
-    def __iter__(self) -> List[Cell]:
-        return list(itertools.chain(*self.cells))
+    def __setitem__(self, item: Tuple[Column, int], value: Optional[int]) -> None:
+        column, row = item
+        self.cells[row - 1][column.value - 1].value = value
+
+    def __iter__(self) -> Iterable[Cell]:
+        return itertools.chain(*self.cells)
 
     @property
     def rows(self) -> List[List[Cell]]:
