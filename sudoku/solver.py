@@ -1,6 +1,7 @@
 import logging
 
 from sudoku.model import (
+    DictSudoku,
     MatrixSudoku,
     Sudoku,
 )
@@ -11,10 +12,14 @@ logger = logging.getLogger(__name__)
 
 def solve(sudoku: Sudoku) -> None:
     if isinstance(sudoku, MatrixSudoku):
-        if not brute_force_solve(sudoku):
-            raise ValueError('Failed to solve sudoku')
+        result = brute_force_solve(sudoku)
+    elif isinstance(sudoku, DictSudoku):
+        result = constraint_solve(sudoku)
     else:
-        raise TypeError('Expected instance of MatrixSudoku')
+        raise TypeError('Expected instance of DictSudoku or MatrixSudoku')
+
+    if not result:
+        raise ValueError('Failed to solve sudoku')
 
 
 def brute_force_solve(sudoku: MatrixSudoku) -> bool:
@@ -31,3 +36,9 @@ def brute_force_solve(sudoku: MatrixSudoku) -> bool:
             return True
     sudoku[cell] = None
     return False
+
+
+def constraint_solve(sudoku: DictSudoku) -> bool:
+    if sudoku.is_solved():
+        return True
+    # TODO
