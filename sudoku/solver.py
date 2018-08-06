@@ -24,7 +24,7 @@ def brute_force_solve(sudoku: MatrixSudoku) -> bool:
     if cell is None:
         return False
     for value in range(1, 10):
-        logger.debug(f'Trying {value} for {cell.column.name}{cell.row}')
+        logger.debug(f'Trying {value} for {cell.name}')
         logger.debug(str(sudoku))
         sudoku[cell] = value
         if sudoku.is_valid() and brute_force_solve(sudoku):

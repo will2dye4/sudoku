@@ -13,7 +13,7 @@ from typing import (
 )
 
 
-class Column(Enum):
+class Row(Enum):
     A = 1
     B = 2
     C = 3
@@ -31,15 +31,15 @@ class Sudoku(abc.ABC):
     def __str__(self) -> AnyStr:
         horizontal_line = '+-------+-------+-------+\n'
         text = horizontal_line
-        for row in range(1, 10):
+        for row in Row:
             row_str = '|'
-            for column in Column:
-                row_str += f' {self.get_cell_value(column, row) or "."}'
-                if column in {Column.C, Column.F}:
+            for column in range(1, 10):
+                row_str += f' {self.get_cell_value(row, column) or "."}'
+                if column in {3, 6}:
                     row_str += ' |'
             row_str += ' |\n'
             text += row_str
-            if row in {3, 6}:
+            if row in {Row.C, Row.F}:
                 text += horizontal_line
         text += horizontal_line
         return text
@@ -48,34 +48,35 @@ class Sudoku(abc.ABC):
     def from_string(cls, string: AnyStr) -> 'Sudoku':
         # See http://norvig.com/sudoku.html
         sudoku = cls()
-        row = 1
-        column = Column.A
+        row = Row.A
+        column = 1
         cell_count = 0
         for char in string:
             values = None
             if char in '123456789':
-                values = (column, row, int(char))
+                values = (row, column, int(char))
             elif char in '0.':
-                values = (column, row, None)
+                values = (row, column, None)
             if values is not None:
                 sudoku.set_cell_value(*values)
                 cell_count += 1
                 if divmod(cell_count, 9)[1] == 0:
-                    row += 1
-                    column = Column.A
+                    if row != Row.I:
+                        row = Row[chr(ord(row.name) + 1)]
+                    column = 1
                 else:
-                    column = Column[chr(ord(column.name) + 1)]
+                    column += 1
 
         if cell_count != 81:
             raise ValueError('Invalid sudoku string')
         return sudoku
 
     @abc.abstractmethod
-    def get_cell_value(self, column: Column, row: int) -> Optional[int]:
+    def get_cell_value(self, row: Row, column: int) -> Optional[int]:
         raise NotImplemented
 
     @abc.abstractmethod
-    def set_cell_value(self, column: Column, row: int, value: Optional[int]) -> None:
+    def set_cell_value(self, row: Row, column: int, value: Optional[int]) -> None:
         raise NotImplemented
 
     @abc.abstractmethod
@@ -90,9 +91,13 @@ class Sudoku(abc.ABC):
 @dataclass
 class Cell:
     """Class representing a single cell in a sudoku puzzle."""
-    row: int
-    column: Column
+    row: Row
+    column: int
     value: Optional[int] = None
+
+    @property
+    def name(self) -> AnyStr:
+        return f'{self.row.name}{self.column}'
 
 
 @dataclass
@@ -105,25 +110,25 @@ class MatrixSudoku(Sudoku):
             cells = [
                 [
                     Cell(row, column)
-                    for column in Column
+                    for column in range(1, 10)
                 ]
-                for row in range(1, 10)
+                for row in Row
             ]
         self.cells = cells
 
-    def __getitem__(self, item: Union[Cell, Tuple[Column, int]]) -> Optional[int]:
+    def __getitem__(self, item: Union[Cell, Tuple[Row, int]]) -> Optional[int]:
         if isinstance(item, tuple):
-            column, row = item
+            row, column = item
         else:
-            column, row = item.column, item.row
-        return self.cells[row - 1][column.value - 1].value
+            row, column = item.row, item.column
+        return self.cells[row.value - 1][column - 1].value
 
-    def __setitem__(self, item: Union[Cell, Tuple[Column, int]], value: Optional[int]) -> None:
+    def __setitem__(self, item: Union[Cell, Tuple[Row, int]], value: Optional[int]) -> None:
         if isinstance(item, tuple):
-            column, row = item
+            row, column = item
         else:
-            column, row = item.column, item.row
-        self.cells[row - 1][column.value - 1].value = value
+            row, column = item.row, item.column
+        self.cells[row.value - 1][column - 1].value = value
 
     def __iter__(self) -> Iterable[Cell]:
         return itertools.chain(*self.cells)
@@ -148,11 +153,11 @@ class MatrixSudoku(Sudoku):
             for row in range(0, 9, 3)
         ]
 
-    def get_row(self, row: int) -> List[Cell]:
-        return self.cells[row - 1]
+    def get_row(self, row: Row) -> List[Cell]:
+        return self.cells[row.value - 1]
 
-    def get_column(self, column: Column) -> List[Cell]:
-        return self.columns[column.value - 1]
+    def get_column(self, column: int) -> List[Cell]:
+        return self.columns[column - 1]
 
     def get_box(self, box_num: int) -> List[Cell]:
         return self.boxes[box_num - 1]
@@ -160,11 +165,11 @@ class MatrixSudoku(Sudoku):
     def get_next_empty_cell(self) -> Optional[Cell]:
         return next((cell for cell in self if cell.value is None), None)
 
-    def get_cell_value(self, column: Column, row: int) -> Optional[int]:
-        return self[column, row]
+    def get_cell_value(self, row: Row, column: int) -> Optional[int]:
+        return self[row, column]
 
-    def set_cell_value(self, column: Column, row: int, value: Optional[int]) -> None:
-        self[column, row] = value
+    def set_cell_value(self, row: Row, column: int, value: Optional[int]) -> None:
+        self[row, column] = value
 
     def is_valid(self) -> bool:
         if not all(cell.value is None or cell.value in {1, 2, 3, 4, 5, 6, 7, 8, 9} for cell in self):
