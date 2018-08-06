@@ -58,7 +58,7 @@ class Sudoku(abc.ABC):
             elif char in '0.':
                 values = (column, row, None)
             if values is not None:
-                sudoku.add_cell(*values)
+                sudoku.set_cell_value(*values)
                 cell_count += 1
                 if divmod(cell_count, 9)[1] == 0:
                     row += 1
@@ -71,11 +71,11 @@ class Sudoku(abc.ABC):
         return sudoku
 
     @abc.abstractmethod
-    def add_cell(self, column: Column, row: int, value: Optional[int]) -> None:
+    def get_cell_value(self, column: Column, row: int) -> Optional[int]:
         raise NotImplemented
 
     @abc.abstractmethod
-    def get_cell_value(self, column: Column, row: int) -> Optional[int]:
+    def set_cell_value(self, column: Column, row: int, value: Optional[int]) -> None:
         raise NotImplemented
 
     @abc.abstractmethod
@@ -110,9 +110,6 @@ class MatrixSudoku(Sudoku):
                 for row in range(1, 10)
             ]
         self.cells = cells
-
-    def add_cell(self, column: Column, row: int, value: Optional[int]) -> None:
-        self[column, row] = value
 
     def __getitem__(self, item: Union[Cell, Tuple[Column, int]]) -> Optional[int]:
         if isinstance(item, tuple):
@@ -165,6 +162,9 @@ class MatrixSudoku(Sudoku):
 
     def get_cell_value(self, column: Column, row: int) -> Optional[int]:
         return self[column, row]
+
+    def set_cell_value(self, column: Column, row: int, value: Optional[int]) -> None:
+        self[column, row] = value
 
     def is_valid(self) -> bool:
         if not all(cell.value is None or cell.value in {1, 2, 3, 4, 5, 6, 7, 8, 9} for cell in self):
