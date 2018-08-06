@@ -1,60 +1,33 @@
+import logging
+
 from sudoku.model import (
-    Cell,
-    Column,
+    MatrixSudoku,
     Sudoku,
 )
 
 
-def is_valid(sudoku: Sudoku) -> bool:
-    if not all(cell.value is None or cell.value in {1, 2, 3, 4, 5, 6, 7, 8, 9} for cell in sudoku):
-        return False
-    for units in (sudoku.rows, sudoku.columns, sudoku.boxes):
-        for unit in units:
-            unit_values = [cell.value for cell in unit if cell.value is not None]
-            if len(set(unit_values)) != len(unit_values):
-                return False
-    return True
-
-
-def is_solved(sudoku: Sudoku) -> bool:
-    return is_valid(sudoku) and all(cell.value is not None for cell in sudoku)
-
-
-def get_next_empty_cell(sudoku: Sudoku) -> Cell:
-    return next((cell for cell in sudoku if cell.value is None), None)
+logger = logging.getLogger(__name__)
 
 
 def solve(sudoku: Sudoku) -> None:
-    if not _solve(sudoku):
-        raise ValueError('failed to solve sudoku')
+    if isinstance(sudoku, MatrixSudoku):
+        if not brute_force_solve(sudoku):
+            raise ValueError('Failed to solve sudoku')
+    else:
+        raise TypeError('Expected instance of MatrixSudoku')
 
 
-def _solve(sudoku: Sudoku) -> bool:
-    if is_solved(sudoku):
+def brute_force_solve(sudoku: MatrixSudoku) -> bool:
+    if sudoku.is_solved():
         return True
-    cell = get_next_empty_cell(sudoku)
+    cell = sudoku.get_next_empty_cell()
     if cell is None:
         return False
     for value in range(1, 10):
-        print(f'trying {value} for {cell.column.name}{cell.row}')
-        pprint(sudoku)
-        sudoku[cell.column, cell.row] = value
-        if is_valid(sudoku) and _solve(sudoku):
+        logger.debug(f'Trying {value} for {cell.column.name}{cell.row}')
+        logger.debug(str(sudoku))
+        sudoku[cell] = value
+        if sudoku.is_valid() and brute_force_solve(sudoku):
             return True
-    sudoku[cell.column, cell.row] = None
+    sudoku[cell] = None
     return False
-
-
-def pprint(sudoku: Sudoku) -> None:
-    horizontal_line = '+-------+-------+-------+'
-    print(horizontal_line)
-    for i, row in enumerate(sudoku.rows):
-        row_str = '|'
-        for cell in row:
-            row_str += f' {cell.value or "."}'
-            if cell.column in {Column.C, Column.F, Column.I}:
-                row_str += ' |'
-        print(row_str)
-        if i + 1 in {3, 6}:
-            print(horizontal_line)
-    print(horizontal_line)
