@@ -11,7 +11,10 @@ class SudokuApp(tk.Frame):
 
     DEFAULT_TICK_DELAY_MILLIS = 100
 
-    def __init__(self, master: tk.Tk = None, sudoku: Sudoku = None, delay_millis: int = 0):
+    def __init__(self, master: tk.Tk = None, sudoku: Sudoku = None, delay_millis: int = 10):
+        if master is None:
+            master = tk.Tk()
+            master.title('Sudoku Solver')
         super().__init__(master)
         self.sudoku = sudoku
         self.delay_millis = delay_millis
@@ -88,7 +91,7 @@ class SudokuApp(tk.Frame):
             pass
 
     @property
-    def elapsed_time(self):
+    def elapsed_time(self) -> float:
         if self.start_time is not None:
             end_time = self.end_time or time.time()
             return end_time - self.start_time
@@ -120,7 +123,5 @@ class SudokuApp(tk.Frame):
 
 
 if __name__ == '__main__':
-    root = tk.Tk()
-    root.title('Sudoku Solver')
-    app = SudokuApp(master=root, sudoku=ds, delay_millis=1000)
+    app = SudokuApp(sudoku=ds, delay_millis=1000)
     app.mainloop()
