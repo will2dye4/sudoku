@@ -23,6 +23,8 @@ class SudokuSolver(abc.ABC):
 
     def __init__(self, event_listener: Optional[Callable[[Sudoku], None]] = None):
         self.event_listener = event_listener
+        self.possibilities_tried = 0
+        self.backtracks = 0
 
     def on_grid_changed(self, sudoku: Sudoku) -> None:
         if self.event_listener is not None:
@@ -49,11 +51,13 @@ class BruteForceSolver(SudokuSolver):
             logger.debug(str(sudoku))
             self.on_grid_changed(sudoku)
             sudoku[cell] = value
+            self.possibilities_tried += 1
             if sudoku.is_valid():
                 solved = self.solve(sudoku)
                 if solved:
                     return solved
         sudoku[cell] = None
+        self.backtracks += 1
         return None
 
 
@@ -67,11 +71,13 @@ class ConstraintBasedSolver(SudokuSolver):
             logger.debug(f'Trying {value} for {cell}')
             logger.debug(str(sudoku))
             new_sudoku = DictSudoku(sudoku.values.copy())
+            self.possibilities_tried += 1
             if new_sudoku.set_cell_value(Row[cell[0]], int(cell[1]), value):
                 self.on_grid_changed(new_sudoku)
                 solved = self.solve(new_sudoku)
                 if solved:
                     return solved
+        self.backtracks += 1
         return None
 
 
