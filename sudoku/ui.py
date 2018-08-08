@@ -87,23 +87,20 @@ class SudokuApp(tk.Frame):
         except:
             pass
 
+    @property
+    def elapsed_time(self):
+        if self.start_time is not None:
+            end_time = self.end_time or time.time()
+            return end_time - self.start_time
+        return 0
+
     def tick(self) -> None:
-        if self.solve_thread is not None:
-            if self.solve_thread.is_alive():
-                # still running
-                elapsed = time.time() - self.start_time
-            else:
-                # finished
-                self.end_time = time.time()
-                elapsed = self.end_time - self.start_time
-                self.solve_thread = None
-        elif self.start_time is not None and self.end_time is not None:
-            elapsed = self.end_time - self.start_time
-        else:
-            elapsed = 0
+        if self.solve_thread is not None and not self.solve_thread.is_alive():
+            self.end_time = time.time()
+            self.solve_thread = None
         self.stats['text'] = (f'Possibilities Tried: {self.solver.possibilities_tried}          '
                               f'Backtracks: {self.solver.backtracks}          '
-                              f'Elapsed Time: {elapsed:0.2f} sec')
+                              f'Elapsed Time: {self.elapsed_time:0.2f} sec')
         self.update()
         self.after(self.DEFAULT_TICK_DELAY_MILLIS, self.tick)
 
