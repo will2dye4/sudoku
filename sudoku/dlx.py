@@ -5,6 +5,7 @@ from dataclasses import (
     field,
 )
 from typing import (
+    Any,
     AnyStr,
     Iterable,
     List,
@@ -23,7 +24,7 @@ class Node:
     down: Optional[Union['Column', 'Node']] = None
     id: uuid.UUID = field(hash=True, init=False, default_factory=uuid.uuid4)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, (Column, Node)):
             return False
         return other.id == self.id
@@ -44,10 +45,13 @@ class Column:
     def column(self) -> 'Column':
         return self
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, (Column, Node)):
             return False
         return other.id == self.id
+
+    def __hash__(self) -> int:
+        return hash(self.id)
 
     def __repr__(self) -> AnyStr:
         return f'Column({self.name})'
@@ -76,23 +80,53 @@ class DLX:
         self.root.left = prev_column
 
         # create the nodes
-        pass
+        prev_row_nodes = {column: column for column in self.traverse_right(self.root)}
+        for i, row in enumerate(matrix):
+            node = None
+            prev_col_node = None
+            for column, value in zip(self.traverse_right(self.root), row):
+                if value == 1:
+                    node = Node(column)
+                    prev_row_node = prev_row_nodes[column]
+                    node.up = prev_row_node
+                    prev_row_node.down = node
+                    prev_row_nodes[column] = node
+                    if prev_col_node is not None:
+                        node.left = prev_col_node
+                        prev_col_node.right = node
+                    prev_col_node = node
+            if node is not None:
+                if node.left is None:
+                    first = node
+                else:
+                    first = node.left
+                    while first.left is not None:
+                        first = first.left
+                node.right = first
+                first.left = node
 
-    def search(self, k: int = 0) -> None:
+        for column, node in prev_row_nodes.items():
+            node.down = column
+            column.up = node
+
+    def search(self, k: int = 0) -> Optional[List[List[AnyStr]]]:
         if self.root.right == self.root:
-            return  # DONE! print solution or return it here
+            return self.get_solution()
         column = self.root.right    # NOTE: could optimize using column sizes
         self.cover(column)
         for row in self.traverse_down(column):
             self.solution[k] = row
             for next_column in self.traverse_right(row):
-                self.cover(next_column)
-            self.search(k + 1)
+                self.cover(next_column.column)
+            result = self.search(k + 1)
+            if result:
+                return result
             row = self.solution[k]
             column = row.column
             for prev_column in self.traverse_left(row):
-                self.uncover(prev_column)
+                self.uncover(prev_column.column)
         self.uncover(column)
+        return None
 
     def cover(self, column: Column) -> None:
         column.right.left = column.left
@@ -113,6 +147,14 @@ class DLX:
                 prev_column.up.down = prev_column
         column.right.left = column
         column.left.right = column
+
+    def get_solution(self) -> List[List[AnyStr]]:
+        solution = []
+        for node in self.solution.values():
+            columns = [node.column.name]
+            columns.extend(next_node.column.name for next_node in self.traverse_right(node))
+            solution.append(columns)
+        return solution
 
     @classmethod
     def traverse_left(cls, node: Union[Column, Node]) -> Iterable[Union[Column, Node]]:
@@ -136,3 +178,17 @@ class DLX:
         while next_node != node:
             yield next_node
             next_node = getattr(next_node, direction)
+
+
+if __name__ == '__main__':
+    matrix = [
+        [0, 0, 1, 0, 1, 1, 0],
+        [1, 0, 0, 1, 0, 0, 1],
+        [0, 1, 1, 0, 0, 1, 0],
+        [1, 0, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 1],
+        [0, 0, 0, 1, 1, 0, 1],
+    ]
+    dlx = DLX(matrix)
+    print('Searching...')
+    print(dlx.search())
