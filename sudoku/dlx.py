@@ -50,6 +50,11 @@ class Column:
             return False
         return other.id == self.id
 
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, Column):
+            raise TypeError(f'Expected argument of type {self.__class__.__name__} for < comparison')
+        return (self.size, self.name, self.id) < (other.size, other.name, other.id)
+
     def __hash__(self) -> int:
         return hash(self.id)
 
@@ -60,19 +65,27 @@ class Column:
 class DLX:
     """Class representing the sparse matrix of DLX."""
 
-    def __init__(self, matrix: List[List[int]]):
+    def __init__(self, matrix: List[List[int]], column_names: Optional[List[AnyStr]] = None,
+                 minimize_branching: bool = False):
         self.root = Column(name='root')
         self.solution = {}
-        self._initialize(matrix)
+        self.minimize_branching = minimize_branching
+        self._initialize(matrix, column_names)
 
-    def _initialize(self, matrix: List[List[int]]) -> None:
+    def _initialize(self, matrix: List[List[int]], column_names: Optional[Iterable[AnyStr]] = None) -> None:
         if not matrix:
             return
 
+        if column_names is None:
+            num_columns = len(matrix[0])
+            if num_columns <= 26:
+                column_names = (chr(ord('A') + i) for i in range(num_columns))
+            else:
+                column_names = (str(i + 1) for i in range(num_columns))
+
         # create the column list headers
         prev_column = self.root
-        for i in range(len(matrix[0])):
-            column_name = chr(ord('A') + i)     # TODO this won't work if the matrix is large
+        for column_name in column_names:
             column = Column(name=column_name, left=prev_column)
             prev_column.right = column
             prev_column = column
@@ -110,9 +123,10 @@ class DLX:
             column.up = node
 
     def search(self, k: int = 0) -> Optional[List[List[AnyStr]]]:
+        print(f'searching, k = {k}')
         if self.root.right == self.root:
             return self.get_solution()
-        column = self.root.right    # NOTE: could optimize using column sizes
+        column = self.get_next_column()
         self.cover(column)
         for row in self.traverse_down(column):
             self.solution[k] = row
@@ -126,22 +140,25 @@ class DLX:
             for prev_column in self.traverse_left(row):
                 self.uncover(prev_column.column)
         self.uncover(column)
+        print(f'backtracking, k = {k}')
         return None
 
     def cover(self, column: Column) -> None:
+        print(f'covering {column.name}')
         column.right.left = column.left
         column.left.right = column.right
         for row in self.traverse_down(column):
             for next_column in self.traverse_right(row):
                 next_column.down.up = next_column.up
                 next_column.up.down = next_column.down
-                if next_column.column.size:
+                if self.minimize_branching:
                     next_column.column.size -= 1
 
     def uncover(self, column: Column) -> None:
+        print(f'uncovering {column.name}')
         for row in self.traverse_up(column):
             for prev_column in self.traverse_left(row):
-                if prev_column.column.size:
+                if self.minimize_branching:
                     prev_column.column.size += 1
                 prev_column.down.up = prev_column
                 prev_column.up.down = prev_column
@@ -155,6 +172,11 @@ class DLX:
             columns.extend(next_node.column.name for next_node in self.traverse_right(node))
             solution.append(columns)
         return solution
+
+    def get_next_column(self) -> Column:
+        if self.minimize_branching:
+            return min(self.traverse_right(self.root))
+        return self.root.right
 
     @classmethod
     def traverse_left(cls, node: Union[Column, Node]) -> Iterable[Union[Column, Node]]:
