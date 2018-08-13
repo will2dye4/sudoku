@@ -6,8 +6,10 @@ from enum import Enum
 from typing import (
     AnyStr,
     Callable,
+    Dict,
     Generic,
     Iterable,
+    List,
     Optional,
     TypeVar,
 )
@@ -15,6 +17,7 @@ from typing import (
 from sudoku.dlx import DLX
 from sudoku.model import (
     CELLS,
+    Cell,
     DictSudoku,
     MatrixSudoku,
     Row,
@@ -132,7 +135,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
         box_num_index = self.get_constraint_index(f'B{box}#{value}')
         return row_col_index, row_num_index, col_num_index, box_num_index
 
-    def solve(self) -> Optional[Sudoku]:
+    def get_matrix(self) -> List[List[int]]:
         matrix = []
         for row in Row:
             for column in range(1, 10):
@@ -147,14 +150,44 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
                         for index in self.get_matching_constraint_indices(row, column, matrix_candidate):
                             matrix_row[index] = 1
                     matrix.append(matrix_row)
+        return matrix
 
+    @staticmethod
+    def get_cell_dict_for_solution(solution: List[List[AnyStr]]) -> Dict[AnyStr, int]:
+        cell_dict = {}
+        for matched_constraints in solution:
+            row = None
+            column = None
+            value = None
+            for constraint in matched_constraints:
+                first_part, first_value, second_part, second_value = constraint
+                if first_part == 'R' and second_part == 'C':
+                    row = chr(ord('A') + int(first_value) - 1)
+                    column = second_value
+                elif second_part == '#':
+                    value = int(second_value)
+            cell_dict[f'{row}{column}'] = value
+        return cell_dict
+
+    def get_solved_sudoku(self, solution: List[List[AnyStr]]) -> MatrixSudoku:
+        cell_dict = self.get_cell_dict_for_solution(solution)
+        cells = []
+        for row in Row:
+            matrix_row = []
+            for column in range(1, 10):
+                matrix_row.append(Cell(row, column, cell_dict[f'{row.name}{column}']))
+            cells.append(matrix_row)
+        return MatrixSudoku(cells)
+
+    def solve(self) -> Optional[Sudoku]:
+        matrix = self.get_matrix()
         dlx = DLX(matrix, column_names=ALL_CONSTRAINTS, minimize_branching=self.minimize_branching)
         solution = dlx.search()
         if solution is None:
-            print('no workie')
             return None
-        print(solution)
-        # TODO return sudoku
+        if len(solution) != 81 or not all(len(constraints) == 4 for constraints in solution):
+            raise ValueError(f'DLX search produced an invalid solution: {solution}')
+        return self.get_solved_sudoku(solution)
 
 
 AlgorithmConfig = namedtuple('AlgorithmConfig', ['sudoku_type', 'solver_type'])
@@ -191,20 +224,37 @@ def get_solver(sudoku: Sudoku, algorithm: SolutionAlgorithm) -> SudokuSolver:
 
 
 if __name__ == '__main__':
+    # sudoku = MatrixSudoku.from_string("""
+    #     +-------+-------+-------+
+    #     | 4 . . | . . . | 8 . 5 |
+    #     | . 3 . | . . . | . . . |
+    #     | . . . | 7 . . | . . . |
+    #     +-------+-------+-------+
+    #     | . 2 . | . . . | . 6 . |
+    #     | . . . | . 8 . | 4 . . |
+    #     | . . . | . 1 . | . . . |
+    #     +-------+-------+-------+
+    #     | . . . | 6 . 3 | . 7 . |
+    #     | 5 . . | 2 . . | . . . |
+    #     | 1 . 4 | . . . | . . . |
+    #     +-------+-------+-------+
+    # """)
     sudoku = MatrixSudoku.from_string("""
-        +-------+-------+-------+
-        | 4 . . | . . . | 8 . 5 |
-        | . 3 . | . . . | . . . |
-        | . . . | 7 . . | . . . |
-        +-------+-------+-------+
-        | . 2 . | . . . | . 6 . |
-        | . . . | . 8 . | 4 . . |
-        | . . . | . 1 . | . . . |
-        +-------+-------+-------+
-        | . . . | 6 . 3 | . 7 . |
-        | 5 . . | 2 . . | . . . |
-        | 1 . 4 | . . . | . . . |
-        +-------+-------+-------+
+        6 . 2 |4 8 . |9 3 7 
+        8 3 4 |6 . 9 |1 5 2 
+        9 7 1 |. 2 5 |8 6 4 
+        ------+------+------
+        . 6 7 |8 1 2 |5 . 3 
+        3 1 5 |7 9 . |6 2 8 
+        2 9 . |5 6 3 |. 7 1 
+        ------+------+------
+        . 8 . |. 3 . |2 . 5 
+        5 . 3 |1 . 6 |. 8 . 
+        7 . 9 |. 5 8 |3 1 6
     """)
     solver = DLXSolver(sudoku, minimize_branching=True)
-    solver.solve()
+    solved = solver.solve()
+    if solved:
+        print(str(solved))
+    else:
+        print('Failed to solve sudoku')
