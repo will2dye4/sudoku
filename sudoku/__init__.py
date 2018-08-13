@@ -1,9 +1,17 @@
 from sudoku.model import (
     DictSudoku,
     MatrixSudoku,
+    Row,
     Sudoku,
 )
-from sudoku.solver import solve
+from sudoku.solver import (
+    BruteForceSolver,
+    ConstraintBasedSolver,
+    DLXSolver,
+    SolutionAlgorithm,
+    get_solver,
+    solve,
+)
 
 input_string = """
     +-------+-------+-------+

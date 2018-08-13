@@ -5,6 +5,11 @@ from setuptools import (
 
 setup(
     name='sudoku',
-    version='0.1.0',
-    packages=find_packages()
+    version='1.0.0',
+    packages=find_packages(),
+    entry_points={
+        'console_scripts': [
+            'sudoku = sudoku.__main__:main'
+        ]
+    }
 )

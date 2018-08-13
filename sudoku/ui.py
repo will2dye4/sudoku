@@ -2,20 +2,42 @@ import threading
 import time
 import tkinter as tk
 
-from sudoku import Sudoku, ds, ms
-from sudoku.model import Row
-from sudoku.solver import get_solver
+from typing import Optional
+
+from sudoku import (
+    DictSudoku,
+    MatrixSudoku,
+    Row,
+    SolutionAlgorithm,
+    Sudoku,
+    ds,
+    get_solver,
+    ms,
+)
 
 
 class SudokuApp(tk.Frame):
 
     DEFAULT_TICK_DELAY_MILLIS = 100
 
-    def __init__(self, master: tk.Tk = None, sudoku: Sudoku = None, delay_millis: int = 10):
+    def __init__(self, master: Optional[tk.Tk] = None, sudoku: Optional[Sudoku] = None,
+                 algorithm: Optional[SolutionAlgorithm] = None, delay_millis: int = 10):
         if master is None:
             master = tk.Tk()
             master.title('Sudoku Solver')
+
         super().__init__(master)
+
+        if sudoku is not None:
+            if algorithm is None:
+                for alg in SolutionAlgorithm:
+                    if isinstance(sudoku, alg.value.sudoku_type):
+                        algorithm = alg
+                        break
+            if algorithm not in {SolutionAlgorithm.BRUTE_FORCE, SolutionAlgorithm.CONSTRAINT_BASED}:
+                raise ValueError('Algorithm must be either BRUTE_FORCE or CONSTRAINT_BASED for Sudoku UI')
+
+        self.algorithm = algorithm
         self.sudoku = sudoku
         self.delay_millis = delay_millis
         self.solver = None
@@ -107,21 +129,36 @@ class SudokuApp(tk.Frame):
         self.update()
         self.after(self.DEFAULT_TICK_DELAY_MILLIS, self.tick)
 
-    def mainloop(self, n: int = 0) -> None:
+    def run(self) -> None:
         if self.sudoku is not None:
-            self.solver = get_solver(self.sudoku)
+            self.solver = get_solver(self.sudoku, self.algorithm)
             self.solver.event_listener = self.update_grid
-            self.solve_thread = threading.Thread(target=self.solver.solve, args=(self.sudoku,), daemon=True)
+            self.solve_thread = threading.Thread(target=self.solver.solve, daemon=True)
             self.solve_thread.start()
             self.start_time = time.time()
             self.tick()
 
-        super().mainloop(n)
+        super().mainloop()
 
         if self.solve_thread is not None:
             self.solve_thread.join(timeout=1)
 
 
 if __name__ == '__main__':
+    s = """
+            6 . 2 |4 8 . |9 3 7 
+            8 3 4 |6 . 9 |1 5 2 
+            9 7 1 |. 2 5 |8 6 4 
+            ------+------+------
+            . 6 7 |8 1 2 |5 . 3 
+            3 1 5 |7 9 . |6 2 8 
+            2 9 . |5 6 3 |. 7 1 
+            ------+------+------
+            . 8 . |. 3 . |2 . 5 
+            5 . 3 |1 . 6 |. 8 . 
+            7 . 9 |. 5 8 |3 1 6
+    """
+    ms2 = MatrixSudoku.from_string(s)  # TODO - does this produce an invalid solution??
+    ds2 = DictSudoku.from_string(s)
     app = SudokuApp(sudoku=ds, delay_millis=1000)
-    app.mainloop()
+    app.run()
