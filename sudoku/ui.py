@@ -18,10 +18,11 @@ from sudoku import (
 
 class SudokuApp(tk.Frame):
 
+    DEFAULT_STEP_DELAY_MILLIS = 10
     DEFAULT_TICK_DELAY_MILLIS = 100
 
     def __init__(self, master: Optional[tk.Tk] = None, sudoku: Optional[Sudoku] = None,
-                 algorithm: Optional[SolutionAlgorithm] = None, delay_millis: int = 10):
+                 algorithm: Optional[SolutionAlgorithm] = None, delay_millis: int = DEFAULT_STEP_DELAY_MILLIS):
         if master is None:
             master = tk.Tk()
             master.title('Sudoku Solver')

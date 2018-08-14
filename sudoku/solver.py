@@ -208,7 +208,7 @@ def solve(sudoku: Optional[Sudoku] = None, sudoku_string: Optional[AnyStr] = Non
     sudoku_type, solver_type = algorithm.value
 
     if sudoku is None:
-        sudoku = sudoku_type(sudoku_string)
+        sudoku = sudoku_type.from_string(sudoku_string)
     elif not isinstance(sudoku, sudoku_type):
         raise ValueError(f'Algorithm {algorithm.name} requires an instance of {sudoku_type}')
 
