@@ -9,7 +9,8 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'sudoku = sudoku.__main__:main'
+            'ku = sudoku.__main__:ku',
+            'sudoku = sudoku.__main__:main',
         ]
     }
 )
