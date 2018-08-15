@@ -62,21 +62,21 @@ def main() -> None:
     else:
         if args.quiet < 1:
             print(str(sudoku))
-        if args.quiet < 2:
+        if args.quiet < 3:
             print('Solving...')
         solver = get_solver(sudoku=sudoku, algorithm=algorithm)
         start_time = time.time()
         solved = solver.solve()
         end_time = time.time()
         if solved is None:
-            if args.quiet < 2:
+            if args.quiet < 3:
                 print('Failed to solve sudoku!')
             sys.exit(1)
         else:
             total_time = end_time - start_time
-            if args.quiet < 2:
+            if args.quiet < 3:
                 print(f'Done! Evaluated {solver.possibilities_tried} possibilities in {total_time:0.2f} seconds.\n')
-            if args.quiet < 1:
+            if args.quiet < 2:
                 print(str(solved))
             print(solved.get_condensed_string())
 
