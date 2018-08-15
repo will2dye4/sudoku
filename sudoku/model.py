@@ -1,5 +1,6 @@
 import abc
 import itertools
+import re
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -28,6 +29,8 @@ class Row(Enum):
 
 class Sudoku(abc.ABC):
     """Abstract base class for a sudoku puzzle."""
+
+    NON_DIGIT_REGEX = re.compile(r'\D')
 
     def __str__(self) -> AnyStr:
         horizontal_line = '+-------+-------+-------+\n'
@@ -71,6 +74,9 @@ class Sudoku(abc.ABC):
         if cell_count != 81:
             raise ValueError('Invalid sudoku string')
         return sudoku
+
+    def get_condensed_string(self) -> AnyStr:
+        return self.NON_DIGIT_REGEX.sub('', str(self))
 
     @abc.abstractmethod
     def get_cell_value(self, row: Row, column: int) -> Optional[int]:
