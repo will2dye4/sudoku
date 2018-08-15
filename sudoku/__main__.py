@@ -9,7 +9,9 @@ from typing import (
 )
 
 from sudoku import (
+    InvalidPuzzleError,
     SolutionAlgorithm,
+    get_puzzle_by_name,
     get_solver,
 )
 from sudoku.ui import SudokuApp
@@ -31,7 +33,9 @@ class WiderHelpFormatter(argparse.HelpFormatter):
 def parse_args(args: List[AnyStr]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Solve sudoku puzzles.', formatter_class=WiderHelpFormatter)
     parser.add_argument('-s', '--sudoku', '--string', '--sudoku-string',
-                        required=True, help='A string representing a sudoku puzzle to solve')
+                        help='A string representing a sudoku puzzle to solve')
+    parser.add_argument('-n', '--name',
+                        help='The name of a sample puzzle to solve (for demo purposes)')
     parser.add_argument('-a', '--algorithm',
                         choices=sorted(ALGORITHM_CHOICES.keys()), default='constraint',
                         help='The algorithm to use to solve the puzzle')
@@ -46,13 +50,28 @@ def parse_args(args: List[AnyStr]) -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args(sys.argv[1:])
-    algorithm = ALGORITHM_CHOICES[args.algorithm]
 
+    if not args.sudoku and not args.name:
+        print('You must provide either a sudoku string (-s) or the name of a sample puzzle (-n) to solve!')
+        sys.exit(1)
+
+    if args.sudoku and args.name:
+        print('You must provide either a sudoku string (-s) or a sample puzzle name (-n), but not both!')
+        sys.exit(1)
+
+    algorithm = ALGORITHM_CHOICES[args.algorithm]
     if args.gui and algorithm == SolutionAlgorithm.DANCING_LINKS:
         print('GUI mode is not available for DLX algorithm. Defaulting to non-GUI mode...')
         args.gui = False
 
+    if args.name:
+        try:
+            args.sudoku = get_puzzle_by_name(args.name)
+        except InvalidPuzzleError as error:
+            print(str(error))
+            sys.exit(1)
     sudoku = algorithm.value.sudoku_type.from_string(args.sudoku)
+
     if args.gui:
         if args.delay <= 0 or args.delay > 3_600_000:
             print(f'Delay must be between 1 and 3,600,000. Defaulting to {SudokuApp.DEFAULT_STEP_DELAY_MILLIS} ms...')
@@ -61,6 +80,7 @@ def main() -> None:
         app.run()
     else:
         if args.quiet < 1:
+            print('Starting puzzle:')
             print(str(sudoku))
         if args.quiet < 3:
             print('Solving...')
@@ -71,7 +91,7 @@ def main() -> None:
         if solved is None:
             if args.quiet < 3:
                 print('Failed to solve sudoku!')
-            sys.exit(1)
+            sys.exit(2)
         else:
             total_time = end_time - start_time
             if args.quiet < 3:

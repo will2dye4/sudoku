@@ -123,7 +123,7 @@ class DLX:
             column.up = node
 
     def search(self, k: int = 0) -> Optional[List[List[AnyStr]]]:
-        print(f'searching, k = {k}')
+        # print(f'searching, k = {k}')
         if self.root.right == self.root:
             return self.get_solution()
         column = self.get_next_column()
@@ -140,11 +140,11 @@ class DLX:
             for prev_column in self.traverse_left(row):
                 self.uncover(prev_column.column)
         self.uncover(column)
-        print(f'backtracking, k = {k}')
+        # print(f'backtracking, k = {k}')
         return None
 
     def cover(self, column: Column) -> None:
-        print(f'covering {column.name}')
+        # print(f'covering {column.name}')
         column.right.left = column.left
         column.left.right = column.right
         for row in self.traverse_down(column):
@@ -155,7 +155,7 @@ class DLX:
                     next_column.column.size -= 1
 
     def uncover(self, column: Column) -> None:
-        print(f'uncovering {column.name}')
+        # print(f'uncovering {column.name}')
         for row in self.traverse_up(column):
             for prev_column in self.traverse_left(row):
                 if self.minimize_branching:

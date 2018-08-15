@@ -4,6 +4,10 @@ from sudoku.model import (
     Row,
     Sudoku,
 )
+from sudoku.sample_puzzles import (
+    InvalidPuzzleError,
+    get_puzzle_by_name,
+)
 from sudoku.solver import (
     BruteForceSolver,
     ConstraintBasedSolver,
@@ -12,6 +16,7 @@ from sudoku.solver import (
     get_solver,
     solve,
 )
+
 
 input_string = """
     +-------+-------+-------+
