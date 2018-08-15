@@ -24,7 +24,7 @@ ALGORITHM_CHOICES = {
 
 class WiderHelpFormatter(argparse.HelpFormatter):
 
-    def __init__(self, prog):
+    def __init__(self, prog: AnyStr):
         super().__init__(prog, width=120)
 
 
