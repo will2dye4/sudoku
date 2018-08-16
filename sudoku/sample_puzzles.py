@@ -19,7 +19,7 @@ def get_puzzle_by_name(puzzle_name: AnyStr) -> AnyStr:
         return mostly_solved
     match = HARD_PUZZLE_REGEX.match(puzzle_name)
     if match is None:
-        raise InvalidPuzzleError(puzzle_name, 'name must begin with "hard-"')
+        raise InvalidPuzzleError(puzzle_name, 'unknown puzzle')
     try:
         num = int(match.group('num'))
     except ValueError:
