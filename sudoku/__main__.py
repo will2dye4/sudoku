@@ -172,8 +172,8 @@ class SudokuMain:
         if solved is None:
             self.die('Failed to solve sudoku!', level=3, exit_code=2)
         else:
-            total_time = f'{(end_time - start_time):0.2f}'
             possibilities_tried = f'{solver.possibilities_tried:,}'
+            total_time = f'{(end_time - start_time):0.2f}'
             self.info(f'{self.green("Done!")} Evaluated {self.bold(possibilities_tried)} possibilities '
                       f'in {self.bold(total_time)} seconds.\n')
             self.debug(str(solved))
