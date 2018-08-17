@@ -13,6 +13,7 @@ from sudoku.solver import (
     ConstraintBasedSolver,
     DLXSolver,
     SolutionAlgorithm,
+    SudokuSolver,
     get_solver,
     solve,
 )

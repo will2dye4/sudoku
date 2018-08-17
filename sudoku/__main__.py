@@ -1,8 +1,10 @@
 import argparse
+import functools
 import os
 import sys
 import time
 
+from enum import Enum
 from typing import (
     AnyStr,
     List,
@@ -10,12 +12,21 @@ from typing import (
 
 from sudoku import (
     InvalidPuzzleError,
+    Row,
     SolutionAlgorithm,
     Sudoku,
+    SudokuSolver,
     get_puzzle_by_name,
     get_solver,
 )
 from sudoku.ui import SudokuApp
+
+
+class Color(Enum):
+    BOLD = '1'
+    GREEN = '0;32'
+    RED = '0;31'
+    YELLOW = '0;33'
 
 
 class WiderHelpFormatter(argparse.HelpFormatter):
@@ -63,24 +74,46 @@ class SudokuMain:
                             help='Reduce output verbosity (may be used multiple times)')
         return parser.parse_args(args)
 
-    def print(self, level: int, message: AnyStr) -> None:
+    @classmethod
+    def bold(cls, text: AnyStr) -> AnyStr:
+        return cls.colorize(text, Color.BOLD)
+
+    @classmethod
+    def green(cls, text: AnyStr) -> AnyStr:
+        return cls.colorize(text, Color.GREEN)
+
+    @classmethod
+    def red(cls, text: AnyStr) -> AnyStr:
+        return cls.colorize(text, Color.RED)
+
+    @classmethod
+    def yellow(cls, text: AnyStr) -> AnyStr:
+        return cls.colorize(text, Color.YELLOW)
+
+    @staticmethod
+    def colorize(text: AnyStr, color: Color) -> AnyStr:
+        return f'\033[{color.value}m{text}\033[0m'
+
+    def print(self, level: int, message: AnyStr, **kwargs) -> None:
         if self.quietude < level:
-            print(message)
+            print(message, **kwargs)
 
-    def trace(self, message: AnyStr) -> None:
-        self.print(1, message)
+    def trace(self, message: AnyStr, **kwargs) -> None:
+        self.print(1, message, **kwargs)
 
-    def debug(self, message: AnyStr) -> None:
-        self.print(2, message)
+    def debug(self, message: AnyStr, **kwargs) -> None:
+        self.print(2, message, **kwargs)
 
-    def info(self, message: AnyStr) -> None:
-        self.print(3, message)
+    def info(self, message: AnyStr, **kwargs) -> None:
+        self.print(3, message, **kwargs)
 
-    def warn(self, message: AnyStr) -> None:
-        self.print(4, message)
+    def warn(self, message: AnyStr, **kwargs) -> None:
+        self.print(4, message, **kwargs)
 
-    def die(self, message: AnyStr, level: int = 4, exit_code: int = 1) -> None:
-        self.print(level, message)
+    def die(self, message: AnyStr, level: int = 4, exit_code: int = 1, red: bool = True) -> None:
+        if red:
+            message = self.red(message)
+        self.print(level, message, file=sys.stderr)
         sys.exit(exit_code)
 
     def get_sudoku(self) -> Sudoku:
@@ -100,27 +133,49 @@ class SudokuMain:
 
     def run_gui(self, sudoku: Sudoku) -> None:
         if self.algorithm == SolutionAlgorithm.DANCING_LINKS:
-            self.warn('GUI mode is not available for DLX algorithm. Defaulting to non-GUI mode...')
+            self.warn(self.yellow('GUI mode is not available for DLX algorithm. Defaulting to non-GUI mode...'),
+                      file=sys.stderr)
             self.gui = False
+            self.name = None
+            self.run()
+            return
         if self.delay <= 0 or self.delay > 3_600_000:
-            self.warn(f'Delay must be between 1 and 3,600,000. Defaulting to {self.DEFAULT_DELAY_MILLIS} ms...')
+            self.warn(self.yellow(f'Delay must be between 1 and 3,600,000. '
+                                  f'Defaulting to {self.DEFAULT_DELAY_MILLIS} ms...'),
+                      file=sys.stderr)
             self.delay = self.DEFAULT_DELAY_MILLIS
         app = SudokuApp(sudoku=sudoku, algorithm=self.algorithm, delay_millis=self.delay)
         app.run()
 
+    def cli_event_listener(self, solver: SudokuSolver, _: Sudoku) -> None:
+        _, remainder = divmod(solver.possibilities_tried, 1000)
+        if remainder == 0:
+            self.info('.', end='', flush=True)
+
     def run_cli(self, sudoku: Sudoku) -> None:
         self.trace('Starting puzzle:')
         self.trace(str(sudoku))
-        self.info('Solving...')
+
+        num_empty_cells = sum(1 for row in Row for column in range(1, 10)
+                              if sudoku.get_cell_value(row, column) is None)
+        algorithm_name = self.algorithm.name.lower().replace('_', ' ')
+        self.info(f'Solving for {self.bold(num_empty_cells)} unknown cells '
+                  f'using the {self.bold(algorithm_name)} algorithm...', end='', flush=True)
+
         solver = get_solver(sudoku=sudoku, algorithm=self.algorithm)
+        solver.event_listener = functools.partial(self.cli_event_listener, solver)
         start_time = time.time()
         solved = solver.solve()
         end_time = time.time()
+        self.info('')   # force a newline after the dots
+
         if solved is None:
             self.die('Failed to solve sudoku!', level=3, exit_code=2)
         else:
-            total_time = end_time - start_time
-            self.info(f'Done! Evaluated {solver.possibilities_tried} possibilities in {total_time:0.2f} seconds.\n')
+            total_time = f'{(end_time - start_time):0.2f}'
+            possibilities_tried = f'{solver.possibilities_tried:,}'
+            self.info(f'{self.green("Done!")} Evaluated {self.bold(possibilities_tried)} possibilities '
+                      f'in {self.bold(total_time)} seconds.\n')
             self.debug(str(solved))
             self.warn(solved.get_condensed_string())
 
@@ -129,7 +184,10 @@ class SudokuMain:
         if self.gui:
             self.run_gui(sudoku)
         else:
-            self.run_cli(sudoku)
+            try:
+                self.run_cli(sudoku)
+            except KeyboardInterrupt:
+                self.die('\nGoodbye!', red=False)
 
 
 def main() -> None:

@@ -109,7 +109,28 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
     def __init__(self, sudoku: MatrixSudoku, event_listener: Optional[Callable[[Sudoku], None]] = None,
                  minimize_branching: bool = False):
         self.minimize_branching = minimize_branching
+        self.dlx = None
         super().__init__(sudoku, event_listener)
+
+    @property
+    def possibilities_tried(self) -> int:
+        if self.dlx is None:
+            return 0
+        return self.dlx.possibilities_tried
+
+    @possibilities_tried.setter
+    def possibilities_tried(self, value: int) -> None:
+        pass
+
+    @property
+    def backtracks(self) -> int:
+        if self.dlx is None:
+            return 0
+        return self.dlx.backtracks
+
+    @backtracks.setter
+    def backtracks(self, value: int) -> None:
+        pass
 
     @staticmethod
     def get_constraint_index(constraint: AnyStr) -> int:
@@ -181,8 +202,8 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
 
     def solve(self) -> Optional[Sudoku]:
         matrix = self.get_matrix()
-        dlx = DLX(matrix, column_names=ALL_CONSTRAINTS, minimize_branching=self.minimize_branching)
-        solution = dlx.search()
+        self.dlx = DLX(matrix, column_names=ALL_CONSTRAINTS, minimize_branching=self.minimize_branching)
+        solution = self.dlx.search()
         if solution is None:
             return None
         if len(solution) != 81 or not all(len(constraints) == 4 for constraints in solution):

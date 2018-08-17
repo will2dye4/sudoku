@@ -70,6 +70,8 @@ class DLX:
         self.root = Column(name='root')
         self.solution = {}
         self.minimize_branching = minimize_branching
+        self.possibilities_tried = 0
+        self.backtracks = 0
         self._initialize(matrix, column_names)
 
     def _initialize(self, matrix: List[List[int]], column_names: Optional[Iterable[AnyStr]] = None) -> None:
@@ -128,6 +130,7 @@ class DLX:
             return self.get_solution()
         column = self.get_next_column()
         self.cover(column)
+        self.possibilities_tried += 1
         for row in self.traverse_down(column):
             self.solution[k] = row
             for next_column in self.traverse_right(row):
@@ -140,6 +143,7 @@ class DLX:
             for prev_column in self.traverse_left(row):
                 self.uncover(prev_column.column)
         self.uncover(column)
+        self.backtracks += 1
         # print(f'backtracking, k = {k}')
         return None
 
