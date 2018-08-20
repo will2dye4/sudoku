@@ -86,7 +86,7 @@ class ConstraintBasedSolver(SudokuSolver[DictSudoku]):
         for value in sudoku.values[cell]:
             logger.debug(f'Trying {value} for {cell}')
             logger.debug(str(sudoku))
-            new_sudoku = DictSudoku(sudoku.values.copy())
+            new_sudoku = sudoku.clone()
             self.possibilities_tried += 1
             if new_sudoku.set_cell_value(Row[cell[0]], int(cell[1]), value):
                 self.on_grid_changed(new_sudoku)

@@ -7,12 +7,16 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import (
     AnyStr,
+    Dict,
     Iterable,
     List,
     Optional,
+    Set,
     Tuple,
     Union,
 )
+
+from sudoku.utils.colorize import cyan
 
 
 class Row(Enum):
@@ -32,21 +36,11 @@ class Sudoku(abc.ABC):
 
     NON_DIGIT_REGEX = re.compile(r'\D')
 
+    def __init__(self):
+        self.clue_cells = set()
+
     def __str__(self) -> AnyStr:
-        horizontal_line = '+-------+-------+-------+\n'
-        text = horizontal_line
-        for row in Row:
-            row_str = '|'
-            for column in range(1, 10):
-                row_str += f' {self.get_cell_value(row, column) or "."}'
-                if column in {3, 6}:
-                    row_str += ' |'
-            row_str += ' |\n'
-            text += row_str
-            if row in {Row.C, Row.F}:
-                text += horizontal_line
-        text += horizontal_line
-        return text
+        return self.to_string()
 
     @classmethod
     def from_string(cls, string: AnyStr) -> 'Sudoku':
@@ -59,6 +53,7 @@ class Sudoku(abc.ABC):
             values = None
             if char in '123456789':
                 values = (row, column, int(char))
+                sudoku.clue_cells.add((row, column))
             elif char in '0.':
                 values = (row, column, None)
             if values is not None:
@@ -75,8 +70,33 @@ class Sudoku(abc.ABC):
             raise ValueError('Invalid sudoku string')
         return sudoku
 
+    def to_string(self, colorize: bool = True, show_initial_state: bool = False) -> AnyStr:
+        horizontal_line = '+-------+-------+-------+\n'
+        text = horizontal_line
+        for row in Row:
+            row_str = '|'
+            for column in range(1, 10):
+                cell_value = self.get_cell_value(row, column) or '.'
+                if (row, column) in self.clue_cells:
+                    if colorize:
+                        cell_value = cyan(cell_value)
+                elif show_initial_state and cell_value != '.':
+                    cell_value = '.'
+                row_str += f' {cell_value}'
+                if column in {3, 6}:
+                    row_str += ' |'
+            row_str += ' |\n'
+            text += row_str
+            if row in {Row.C, Row.F}:
+                text += horizontal_line
+        text += horizontal_line
+        return text
+
     def get_condensed_string(self) -> AnyStr:
-        return self.NON_DIGIT_REGEX.sub('', str(self))
+        return self.NON_DIGIT_REGEX.sub('', self.to_string(colorize=False))
+
+    def get_clue_cells(self) -> Set[Tuple[Row, int]]:
+        return self.clue_cells
 
     @abc.abstractmethod
     def get_cell_value(self, row: Row, column: int) -> Optional[int]:
@@ -113,6 +133,7 @@ class MatrixSudoku(Sudoku):
     cells: List[List[Cell]]
 
     def __init__(self, cells: List[List[Cell]] = None):
+        super().__init__()
         if cells is None:
             cells = [
                 [
@@ -121,6 +142,9 @@ class MatrixSudoku(Sudoku):
                 ]
                 for row in Row
             ]
+        else:
+            self.clue_cells |= {(row, column) for row in Row for column in range(1, 10)
+                                if cells[row.value - 1][column - 1].value is not None}
         self.cells = cells
 
     def __getitem__(self, item: Union[Cell, Tuple[Row, int]]) -> Optional[int]:
@@ -217,9 +241,13 @@ PEERS = {
 
 class DictSudoku(Sudoku):
 
-    def __init__(self, values=None):
+    def __init__(self, values: Dict[AnyStr, Set[int]] = None):
+        super().__init__()
         if values is None:
             values = defaultdict(lambda: {1, 2, 3, 4, 5, 6, 7, 8, 9})
+        else:
+            self.clue_cells |= {(row, column) for row in Row for column in range(1, 10)
+                                if len(values.get(self.key(row, column), set())) == 1}
         self.values = values
 
     @staticmethod
@@ -265,3 +293,8 @@ class DictSudoku(Sudoku):
 
     def is_solved(self) -> bool:
         return all(len(self.values[c]) == 1 for c in CELLS)
+
+    def clone(self) -> 'DictSudoku':
+        new_sudoku = self.__class__(self.values.copy())
+        new_sudoku.clue_cells = self.clue_cells
+        return new_sudoku
