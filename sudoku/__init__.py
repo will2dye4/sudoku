@@ -1,4 +1,4 @@
-from sudoku.model import (
+from sudoku.grid import (
     DictSudoku,
     MatrixSudoku,
     Row,

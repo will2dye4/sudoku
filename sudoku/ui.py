@@ -14,6 +14,10 @@ from sudoku import (
     get_solver,
     ms,
 )
+from sudoku.grid import (
+    all_cells,
+    columns,
+)
 
 
 class SudokuApp(tk.Frame):
@@ -56,7 +60,7 @@ class SudokuApp(tk.Frame):
             cells = []
             row = tk.Frame()
             self.create_vertical_line(row)
-            for column in range(1, 10):
+            for column in columns():
                 if self.sudoku is not None:
                     value = str(self.sudoku.get_cell_value(row_enum, column) or '')
                 else:
@@ -103,12 +107,11 @@ class SudokuApp(tk.Frame):
 
     def update_grid(self, sudoku: Sudoku) -> None:
         try:
-            for row in Row:
-                for column in range(1, 10):
-                    value = str(sudoku.get_cell_value(row, column) or '')
-                    cell = self.cells[row.value - 1][column - 1]
-                    if cell.get() != value:
-                        cell.set(value)
+            for row, column in all_cells():
+                value = str(sudoku.get_cell_value(row, column) or '')
+                cell = self.cells[row.value - 1][column - 1]
+                if cell.get() != value:
+                    cell.set(value)
             time.sleep(self.delay_millis / 1000)
         except:
             pass

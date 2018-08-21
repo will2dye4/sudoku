@@ -31,9 +31,22 @@ class Row(Enum):
     I = 9
 
 
+def all_cells() -> Iterable[Tuple[Row, int]]:
+    for row in Row:
+        for column in columns():
+            yield row, column
+
+
+def columns() -> Iterable[int]:
+    return range(1, 10)
+
+
 class Sudoku(abc.ABC):
     """Abstract base class for a sudoku puzzle."""
 
+    CELL_VALUES = {1, 2, 3, 4, 5, 6, 7, 8, 9}
+    GRID_SIDE_LENGTH = 9
+    GRID_SIZE = 81
     NON_DIGIT_REGEX = re.compile(r'\D')
 
     def __init__(self):
@@ -59,14 +72,14 @@ class Sudoku(abc.ABC):
             if values is not None:
                 sudoku.set_cell_value(*values)
                 cell_count += 1
-                if divmod(cell_count, 9)[1] == 0:
+                if divmod(cell_count, cls.GRID_SIDE_LENGTH)[1] == 0:
                     if row != Row.I:
                         row = Row[chr(ord(row.name) + 1)]
                     column = 1
                 else:
                     column += 1
 
-        if cell_count != 81:
+        if cell_count != cls.GRID_SIZE:
             raise ValueError('Invalid sudoku string')
         return sudoku
 
@@ -75,7 +88,7 @@ class Sudoku(abc.ABC):
         text = horizontal_line
         for row in Row:
             row_str = '|'
-            for column in range(1, 10):
+            for column in columns():
                 cell_value = self.get_cell_value(row, column) or '.'
                 if (row, column) in self.clue_cells:
                     if colorize:
@@ -138,12 +151,12 @@ class MatrixSudoku(Sudoku):
             cells = [
                 [
                     Cell(row, column)
-                    for column in range(1, 10)
+                    for column in columns()
                 ]
                 for row in Row
             ]
         else:
-            self.clue_cells |= {(row, column) for row in Row for column in range(1, 10)
+            self.clue_cells |= {(row, column) for row, column in all_cells()
                                 if cells[row.value - 1][column - 1].value is not None}
         self.cells = cells
 
@@ -204,7 +217,7 @@ class MatrixSudoku(Sudoku):
         return True
 
     def is_valid(self) -> bool:
-        if not all(cell.value is None or cell.value in {1, 2, 3, 4, 5, 6, 7, 8, 9} for cell in self):
+        if not all(cell.value is None or cell.value in self.CELL_VALUES for cell in self):
             return False
         for units in (self.rows, self.columns, self.boxes):
             for unit in units:
@@ -222,7 +235,7 @@ def cross(a, b):
 
 
 ROWS = [r.name for r in Row]
-COLUMNS = [str(c) for c in range(1, 10)]
+COLUMNS = [str(c) for c in columns()]
 CELLS = cross(ROWS, COLUMNS)
 ALL_UNITS = (
         [cross(ROWS, c) for c in COLUMNS] +
@@ -244,10 +257,9 @@ class DictSudoku(Sudoku):
     def __init__(self, values: Dict[AnyStr, Set[int]] = None):
         super().__init__()
         if values is None:
-            values = defaultdict(lambda: {1, 2, 3, 4, 5, 6, 7, 8, 9})
+            values = defaultdict(lambda: Sudoku.CELL_VALUES.copy())
         else:
-            self.clue_cells |= {(row, column) for row in Row for column in range(1, 10)
-                                if len(values.get(self.key(row, column), set())) == 1}
+            self.clue_cells |= {cell for cell in all_cells() if len(values.get(self.key(*cell), set())) == 1}
         self.values = values
 
     @staticmethod

@@ -11,7 +11,6 @@ from typing import (
 
 from sudoku import (
     InvalidPuzzleError,
-    Row,
     SolutionAlgorithm,
     Sudoku,
     SudokuSolver,
@@ -134,7 +133,7 @@ class SudokuMain:
         self.trace('Starting puzzle:')
         self.trace(sudoku.to_string(show_initial_state=True))
 
-        num_empty_cells = 81 - len(sudoku.clue_cells)
+        num_empty_cells = Sudoku.GRID_SIZE - len(sudoku.clue_cells)
         algorithm_name = self.algorithm.name.lower().replace('_', ' ')
         self.info(f'Solving for {bold(num_empty_cells)} unknown cells '
                   f'using the {bold(algorithm_name)} algorithm...', end='', flush=True)

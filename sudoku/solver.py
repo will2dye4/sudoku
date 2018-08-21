@@ -15,13 +15,15 @@ from typing import (
 )
 
 from sudoku.dlx import DLX
-from sudoku.model import (
+from sudoku.grid import (
     CELLS,
     Cell,
     DictSudoku,
     MatrixSudoku,
     Row,
     Sudoku,
+    all_cells,
+    columns,
 )
 
 
@@ -60,7 +62,7 @@ class BruteForceSolver(SudokuSolver[MatrixSudoku]):
         cell = self.sudoku.get_next_empty_cell()
         if cell is None:
             return None
-        for value in range(1, 10):
+        for value in columns():
             logger.debug(f'Trying {value} for {cell.name}')
             logger.debug(str(self.sudoku))
             self.on_grid_changed(self.sudoku)
@@ -143,7 +145,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
             offset = len(ROW_COLUMN_CONSTRAINTS) + len(ROW_NUMBER_CONSTRAINTS)
         else:
             offset = len(ROW_COLUMN_CONSTRAINTS) + len(ROW_NUMBER_CONSTRAINTS) + len(COLUMN_NUMBER_CONSTRAINTS)
-        index = ((int(first_value) - 1) * 9) + int(second_value) - 1
+        index = ((int(first_value) - 1) * Sudoku.GRID_SIDE_LENGTH) + int(second_value) - 1
         return offset + index
 
     def get_matching_constraint_indices(self, row: Row, column: int, value: int) -> Iterable[int]:
@@ -158,19 +160,18 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
 
     def get_matrix(self) -> List[List[int]]:
         matrix = []
-        for row in Row:
-            for column in range(1, 10):
-                cell_value = self.sudoku.get_cell_value(row, column)
-                if cell_value is None:
-                    candidates = {1, 2, 3, 4, 5, 6, 7, 8, 9}
-                else:
-                    candidates = {cell_value}
-                for matrix_candidate in {1, 2, 3, 4, 5, 6, 7, 8, 9}:
-                    matrix_row = [0] * len(ALL_CONSTRAINTS)
-                    if matrix_candidate in candidates:
-                        for index in self.get_matching_constraint_indices(row, column, matrix_candidate):
-                            matrix_row[index] = 1
-                    matrix.append(matrix_row)
+        for row, column in all_cells():
+            cell_value = self.sudoku.get_cell_value(row, column)
+            if cell_value is None:
+                candidates = Sudoku.CELL_VALUES
+            else:
+                candidates = {cell_value}
+            for matrix_candidate in Sudoku.CELL_VALUES:
+                matrix_row = [0] * len(ALL_CONSTRAINTS)
+                if matrix_candidate in candidates:
+                    for index in self.get_matching_constraint_indices(row, column, matrix_candidate):
+                        matrix_row[index] = 1
+                matrix.append(matrix_row)
         return matrix
 
     @staticmethod
@@ -195,7 +196,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
         cells = []
         for row in Row:
             matrix_row = []
-            for column in range(1, 10):
+            for column in columns():
                 matrix_row.append(Cell(row, column, cell_dict[f'{row.name}{column}']))
             cells.append(matrix_row)
         return MatrixSudoku(cells)
@@ -206,7 +207,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
         solution = self.dlx.search()
         if solution is None:
             return None
-        if len(solution) != 81 or not all(len(constraints) == 4 for constraints in solution):
+        if len(solution) != Sudoku.GRID_SIZE or not all(len(constraints) == 4 for constraints in solution):
             raise ValueError(f'DLX search produced an invalid solution: {solution}')
         return self.get_solved_sudoku(solution)
 
