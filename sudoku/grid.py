@@ -30,11 +30,30 @@ class Row(Enum):
     H = 8
     I = 9
 
+    def next(self, wrap: bool = True) -> 'Row':
+        if self == Row.I:
+            if wrap:
+                return Row.A
+            raise ValueError(f'{str(self)} has no next row')
+        return Row[chr(ord(self.name) + 1)]
 
-def all_cells() -> Iterable[Tuple[Row, int]]:
+
+@dataclass(unsafe_hash=True)
+class Cell:
+    """Class representing a single cell in a sudoku puzzle."""
+    row: Row
+    column: int
+    value: Optional[int] = None
+
+    @property
+    def name(self) -> AnyStr:
+        return f'{self.row.name}{self.column}'
+
+
+def all_cells() -> Iterable[Cell]:
     for row in Row:
         for column in columns():
-            yield row, column
+            yield Cell(row, column)
 
 
 def columns() -> Iterable[int]:
@@ -66,15 +85,14 @@ class Sudoku(abc.ABC):
             values = None
             if char in '123456789':
                 values = (row, column, int(char))
-                sudoku.clue_cells.add((row, column))
+                sudoku.clue_cells.add(Cell(*values))
             elif char in '0.':
                 values = (row, column, None)
             if values is not None:
                 sudoku.set_cell_value(*values)
                 cell_count += 1
                 if divmod(cell_count, cls.GRID_SIDE_LENGTH)[1] == 0:
-                    if row != Row.I:
-                        row = Row[chr(ord(row.name) + 1)]
+                    row = row.next()
                     column = 1
                 else:
                     column += 1
@@ -90,7 +108,7 @@ class Sudoku(abc.ABC):
             row_str = '|'
             for column in columns():
                 cell_value = self.get_cell_value(row, column) or '.'
-                if (row, column) in self.clue_cells:
+                if any(cell.row == row and cell.column == column for cell in self.clue_cells):
                     if colorize:
                         cell_value = cyan(cell_value)
                 elif show_initial_state and cell_value != '.':
@@ -107,9 +125,6 @@ class Sudoku(abc.ABC):
 
     def get_condensed_string(self) -> AnyStr:
         return self.NON_DIGIT_REGEX.sub('', self.to_string(colorize=False))
-
-    def get_clue_cells(self) -> Set[Tuple[Row, int]]:
-        return self.clue_cells
 
     @abc.abstractmethod
     def get_cell_value(self, row: Row, column: int) -> Optional[int]:
@@ -129,18 +144,6 @@ class Sudoku(abc.ABC):
 
 
 @dataclass
-class Cell:
-    """Class representing a single cell in a sudoku puzzle."""
-    row: Row
-    column: int
-    value: Optional[int] = None
-
-    @property
-    def name(self) -> AnyStr:
-        return f'{self.row.name}{self.column}'
-
-
-@dataclass
 class MatrixSudoku(Sudoku):
     """Class representing a sudoku puzzle."""
     cells: List[List[Cell]]
@@ -156,8 +159,8 @@ class MatrixSudoku(Sudoku):
                 for row in Row
             ]
         else:
-            self.clue_cells |= {(row, column) for row, column in all_cells()
-                                if cells[row.value - 1][column - 1].value is not None}
+            self.clue_cells |= {cell for cell in all_cells()
+                                if cells[cell.row.value - 1][cell.column - 1].value is not None}
         self.cells = cells
 
     def __getitem__(self, item: Union[Cell, Tuple[Row, int]]) -> Optional[int]:
@@ -259,7 +262,7 @@ class DictSudoku(Sudoku):
         if values is None:
             values = defaultdict(lambda: Sudoku.CELL_VALUES.copy())
         else:
-            self.clue_cells |= {cell for cell in all_cells() if len(values.get(self.key(*cell), set())) == 1}
+            self.clue_cells |= {cell for cell in all_cells() if len(values.get(cell.name, set())) == 1}
         self.values = values
 
     @staticmethod
