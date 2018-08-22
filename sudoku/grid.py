@@ -20,6 +20,7 @@ from sudoku.utils.colorize import cyan
 
 
 class Row(Enum):
+    """Enumeration defining the valid rows in a sudoku grid."""
     A = 1
     B = 2
     C = 3
@@ -31,6 +32,7 @@ class Row(Enum):
     I = 9
 
     def next(self, wrap: bool = True) -> 'Row':
+        """Return the row after the current row."""
         if self == Row.I:
             if wrap:
                 return Row.A
@@ -47,16 +49,19 @@ class Cell:
 
     @property
     def name(self) -> AnyStr:
+        """Return the cell's name (e.g., 'C5')."""
         return f'{self.row.name}{self.column}'
 
 
 def all_cells() -> Iterable[Cell]:
+    """Generator that yields all cells (row/column pairs) in a sudoku grid."""
     for row in Row:
         for column in columns():
             yield Cell(row, column)
 
 
 def columns() -> Iterable[int]:
+    """Generator that yields all valid columns in a sudoku grid."""
     return range(1, 10)
 
 
@@ -68,15 +73,17 @@ class Sudoku(abc.ABC):
     GRID_SIZE = 81
     NON_DIGIT_REGEX = re.compile(r'\D')
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize a Sudoku."""
         self.clue_cells = set()
 
     def __str__(self) -> AnyStr:
+        """Return a string representation of the sudoku suitable for printing to the console."""
         return self.to_string()
 
     @classmethod
     def from_string(cls, string: AnyStr) -> 'Sudoku':
-        # See http://norvig.com/sudoku.html
+        """Create a Sudoku instance from a string (see http://norvig.com/sudoku.html)."""
         sudoku = cls()
         row = Row.A
         column = 1
@@ -102,6 +109,7 @@ class Sudoku(abc.ABC):
         return sudoku
 
     def to_string(self, colorize: bool = True, show_initial_state: bool = False) -> AnyStr:
+        """Return a string representation of the sudoku, optionally colorized and/or showing the initial state."""
         horizontal_line = '+-------+-------+-------+\n'
         text = horizontal_line
         for row in Row:
@@ -124,31 +132,37 @@ class Sudoku(abc.ABC):
         return text
 
     def get_condensed_string(self) -> AnyStr:
+        """Return a condensed string representation of the sudoku (cell values only, no formatting)."""
         return self.NON_DIGIT_REGEX.sub('', self.to_string(colorize=False))
 
     @abc.abstractmethod
     def get_cell_value(self, row: Row, column: int) -> Optional[int]:
+        """Return the value of the sudoku grid at the given row and column."""
         raise NotImplemented
 
     @abc.abstractmethod
     def set_cell_value(self, row: Row, column: int, value: Optional[int]) -> bool:
+        """Set the value of the sudoku grid at the given row and column to the given value."""
         raise NotImplemented
 
     @abc.abstractmethod
     def is_valid(self) -> bool:
+        """Return True IFF the sudoku is valid (does not violate any rules)."""
         raise NotImplemented
 
     @abc.abstractmethod
     def is_solved(self) -> bool:
+        """Return True IFF the sudoku is solved."""
         raise NotImplemented
 
 
 @dataclass
 class MatrixSudoku(Sudoku):
-    """Class representing a sudoku puzzle."""
+    """Sudoku subclass representing a sudoku puzzle as a 2D matrix of cells."""
     cells: List[List[Cell]]
 
-    def __init__(self, cells: List[List[Cell]] = None):
+    def __init__(self, cells: List[List[Cell]] = None) -> None:
+        """Initialize a MatrixSudoku, optionally with a matrix of cells."""
         super().__init__()
         if cells is None:
             cells = [
@@ -164,6 +178,7 @@ class MatrixSudoku(Sudoku):
         self.cells = cells
 
     def __getitem__(self, item: Union[Cell, Tuple[Row, int]]) -> Optional[int]:
+        """Allow accessing the value of a given cell with `sudoku[row, column]` or `sudoku[cell]`."""
         if isinstance(item, tuple):
             row, column = item
         else:
@@ -171,6 +186,7 @@ class MatrixSudoku(Sudoku):
         return self.cells[row.value - 1][column - 1].value
 
     def __setitem__(self, item: Union[Cell, Tuple[Row, int]], value: Optional[int]) -> None:
+        """Allow setting the value of a given cell with `sudoku[row, column] = value` or `sudoku[cell] = value`."""
         if isinstance(item, tuple):
             row, column = item
         else:
@@ -178,18 +194,22 @@ class MatrixSudoku(Sudoku):
         self.cells[row.value - 1][column - 1].value = value
 
     def __iter__(self) -> Iterable[Cell]:
+        """Return an iterator that iterates over all cells in the sudoku grid."""
         return itertools.chain(*self.cells)
 
     @property
     def rows(self) -> List[List[Cell]]:
+        """Property for accessing the rows in the sudoku grid."""
         return self.cells
 
     @property
     def columns(self) -> List[List[Cell]]:
+        """Property for accessing the columns in the sudoku grid."""
         return list(list(col) for col in zip(*self.cells))
 
     @property
     def boxes(self) -> List[List[Cell]]:
+        """Property for accessing the 3x3 boxes in the sudoku grid."""
         return [
             [
                 self.cells[row + i][col + j]
@@ -201,25 +221,32 @@ class MatrixSudoku(Sudoku):
         ]
 
     def get_row(self, row: Row) -> List[Cell]:
+        """Return a list of cells representing the given row."""
         return self.cells[row.value - 1]
 
     def get_column(self, column: int) -> List[Cell]:
+        """Return a list of cells representing the given column."""
         return self.columns[column - 1]
 
     def get_box(self, box_num: int) -> List[Cell]:
+        """Return a list of cells representing the given box."""
         return self.boxes[box_num - 1]
 
     def get_next_empty_cell(self) -> Optional[Cell]:
+        """Return the next cell that does not yet have a value (if any)."""
         return next((cell for cell in self if cell.value is None), None)
 
     def get_cell_value(self, row: Row, column: int) -> Optional[int]:
+        """Return the value of the sudoku grid at the given row and column."""
         return self[row, column]
 
     def set_cell_value(self, row: Row, column: int, value: Optional[int]) -> bool:
+        """Set the value of the sudoku grid at the given row and column to the given value."""
         self[row, column] = value
         return True
 
     def is_valid(self) -> bool:
+        """Return True IFF the sudoku is valid (does not violate any rules)."""
         if not all(cell.value is None or cell.value in self.CELL_VALUES for cell in self):
             return False
         for units in (self.rows, self.columns, self.boxes):
@@ -230,10 +257,12 @@ class MatrixSudoku(Sudoku):
         return True
 
     def is_solved(self) -> bool:
+        """Return True IFF the sudoku is solved."""
         return self.is_valid() and all(cell.value is not None for cell in self)
 
 
-def cross(a, b):
+def cross(a, b) -> List[AnyStr]:
+    """Return a list of all combinations of values from a and values from b."""
     return [x + y for x in a for y in b]
 
 
@@ -256,8 +285,10 @@ PEERS = {
 
 
 class DictSudoku(Sudoku):
+    """Sudoku subclass representing a sudoku puzzle as a dict."""
 
-    def __init__(self, values: Dict[AnyStr, Set[int]] = None):
+    def __init__(self, values: Dict[AnyStr, Set[int]] = None) -> None:
+        """Initialize a DictSudoku, optionally with a dict of initial values."""
         super().__init__()
         if values is None:
             values = defaultdict(lambda: Sudoku.CELL_VALUES.copy())
@@ -267,15 +298,18 @@ class DictSudoku(Sudoku):
 
     @staticmethod
     def key(row: Row, column: int) -> AnyStr:
+        """Return the dict key for the given row and column."""
         return f'{row.name}{column}'
 
     def get_cell_value(self, row: Row, column: int) -> Optional[int]:
+        """Return the value of the sudoku grid at the given row and column."""
         value = self.values[self.key(row, column)]
         if len(value) == 1:
             return list(value)[0]
         return None
 
     def set_cell_value(self, row: Row, column: int, value: Optional[int]) -> bool:
+        """Set the value of the sudoku grid at the given row and column to the given value."""
         if value is not None:
             other_values = self.values[self.key(row, column)] - {value}
             if not all(self.eliminate(row, column, val) for val in other_values):
@@ -283,6 +317,7 @@ class DictSudoku(Sudoku):
         return True
 
     def eliminate(self, row: Row, column: int, value: int) -> bool:
+        """Given a row, column, and value, eliminate possibilities from other cells that are no longer valid."""
         key = self.key(row, column)
         if value not in self.values[key]:
             return True
@@ -304,12 +339,15 @@ class DictSudoku(Sudoku):
         return True
 
     def is_valid(self) -> bool:
+        """Fake is_valid implementation (does nothing)."""
         pass
 
     def is_solved(self) -> bool:
+        """Return True IFF the sudoku is solved."""
         return all(len(self.values[c]) == 1 for c in CELLS)
 
     def clone(self) -> 'DictSudoku':
+        """Return a new DictSudoku with the same values and clue cells as this instance."""
         new_sudoku = self.__class__(self.values.copy())
         new_sudoku.clue_cells = self.clue_cells
         return new_sudoku

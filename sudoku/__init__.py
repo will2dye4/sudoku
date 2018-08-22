@@ -1,3 +1,5 @@
+"""Utilities for solving sudoku puzzles."""
+
 from sudoku.grid import (
     DictSudoku,
     MatrixSudoku,

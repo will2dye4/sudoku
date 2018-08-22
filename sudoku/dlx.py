@@ -1,3 +1,5 @@
+"""Implementation of the dancing links (DLX) algorithm for the exact cover problem, due to Don Knuth."""
+
 import uuid
 
 from dataclasses import (
@@ -25,6 +27,7 @@ class Node:
     id: uuid.UUID = field(hash=True, init=False, default_factory=uuid.uuid4)
 
     def __eq__(self, other: Any) -> bool:
+        """Return True IFF the other object is equal to this object."""
         if not isinstance(other, (Column, Node)):
             return False
         return other.id == self.id
@@ -43,22 +46,27 @@ class Column:
 
     @property
     def column(self) -> 'Column':
+        """Property that returns the current column's column (itself)."""
         return self
 
     def __eq__(self, other: Any) -> bool:
+        """Return True IFF the other object is equal to this object."""
         if not isinstance(other, (Column, Node)):
             return False
         return other.id == self.id
 
     def __lt__(self, other: Any) -> bool:
+        """Return True IFF the other column is less than this column (based on size)."""
         if not isinstance(other, Column):
             raise TypeError(f'Expected argument of type {self.__class__.__name__} for < comparison')
         return (self.size, self.name, self.id) < (other.size, other.name, other.id)
 
     def __hash__(self) -> int:
+        """Return a hash of this column."""
         return hash(self.id)
 
     def __repr__(self) -> AnyStr:
+        """Return a string representation of this column."""
         return f'Column({self.name})'
 
 
@@ -66,7 +74,8 @@ class DLX:
     """Class representing the sparse matrix of DLX."""
 
     def __init__(self, matrix: List[List[int]], column_names: Optional[List[AnyStr]] = None,
-                 minimize_branching: bool = False):
+                 minimize_branching: bool = False) -> None:
+        """Initialize a DLX instance with the given matrix and column names, and optionally minimizing branching."""
         self.root = Column(name='root')
         self.solution = {}
         self.minimize_branching = minimize_branching
@@ -75,6 +84,7 @@ class DLX:
         self._initialize(matrix, column_names)
 
     def _initialize(self, matrix: List[List[int]], column_names: Optional[Iterable[AnyStr]] = None) -> None:
+        """Initialize the data structures used by DLX from the given matrix and column names."""
         if not matrix:
             return
 
@@ -125,6 +135,7 @@ class DLX:
             column.up = node
 
     def search(self, k: int = 0) -> Optional[List[List[AnyStr]]]:
+        """Perform the recursive search, returning a list of lists of columns that solve the exact cover problem."""
         # print(f'searching, k = {k}')
         if self.root.right == self.root:
             return self.get_solution()
@@ -148,6 +159,7 @@ class DLX:
         return None
 
     def cover(self, column: Column) -> None:
+        """'Cover' the given column as defined by the DLX algorithm."""
         # print(f'covering {column.name}')
         column.right.left = column.left
         column.left.right = column.right
@@ -159,6 +171,7 @@ class DLX:
                     next_column.column.size -= 1
 
     def uncover(self, column: Column) -> None:
+        """'Uncover' the given column as defined by the DLX algorithm."""
         # print(f'uncovering {column.name}')
         for row in self.traverse_up(column):
             for prev_column in self.traverse_left(row):
@@ -170,6 +183,7 @@ class DLX:
         column.left.right = column
 
     def get_solution(self) -> List[List[AnyStr]]:
+        """Return a list of lists of columns representing the solution to the exact cover problem."""
         solution = []
         for node in self.solution.values():
             columns = [node.column.name]
@@ -178,24 +192,29 @@ class DLX:
         return solution
 
     def get_next_column(self) -> Column:
+        """Return the next column to be considered by the DLX algorithm."""
         if self.minimize_branching:
             return min(self.traverse_right(self.root))
         return self.root.right
 
     @classmethod
     def traverse_left(cls, node: Union[Column, Node]) -> Iterable[Union[Column, Node]]:
+        """Traverse a linked list to the left from the given node."""
         yield from cls._traverse(node, 'left')
 
     @classmethod
     def traverse_right(cls, node: Union[Column, Node]) -> Iterable[Union[Column, Node]]:
+        """Traverse a linked list to the right from the given node."""
         yield from cls._traverse(node, 'right')
 
     @classmethod
     def traverse_up(cls, node: Union[Column, Node]) -> Iterable[Union[Column, Node]]:
+        """Traverse a linked list up from the given node."""
         yield from cls._traverse(node, 'up')
 
     @classmethod
     def traverse_down(cls, node: Union[Column, Node]) -> Iterable[Union[Column, Node]]:
+        """Traverse a linked list down from the given node."""
         yield from cls._traverse(node, 'down')
 
     @staticmethod

@@ -1,3 +1,5 @@
+"""Solve sudoku puzzles using a variety of different algorithms."""
+
 import abc
 import logging
 
@@ -36,13 +38,15 @@ T = TypeVar('T')
 class SudokuSolver(abc.ABC, Generic[T]):
     """Abstract base class for a sudoku solver."""
 
-    def __init__(self, sudoku: T, event_listener: Optional[Callable[[Sudoku], None]] = None):
+    def __init__(self, sudoku: T, event_listener: Optional[Callable[[Sudoku], None]] = None) -> None:
+        """Initialize a SudokuSolver with a sudoku puzzle and an optional event listener."""
         self.sudoku = sudoku
         self.event_listener = event_listener
         self.possibilities_tried = 0
         self.backtracks = 0
 
     def on_grid_changed(self, sudoku: Sudoku) -> None:
+        """Invoke the event listener (if any) when the sudoku grid changes."""
         if self.event_listener is not None:
             try:
                 self.event_listener(sudoku)
@@ -51,12 +55,15 @@ class SudokuSolver(abc.ABC, Generic[T]):
 
     @abc.abstractmethod
     def solve(self) -> Optional[Sudoku]:
+        """Solve the puzzle and return the solved sudoku."""
         raise NotImplemented
 
 
 class BruteForceSolver(SudokuSolver[MatrixSudoku]):
+    """SudokuSolver subclass that solves sudoku puzzles using a brute-force approach."""
 
     def solve(self) -> Optional[Sudoku]:
+        """Solve the puzzle by trying all possible values for all empty cells."""
         if self.sudoku.is_solved():
             return self.sudoku
         cell = self.sudoku.get_next_empty_cell()
@@ -78,8 +85,10 @@ class BruteForceSolver(SudokuSolver[MatrixSudoku]):
 
 
 class ConstraintBasedSolver(SudokuSolver[DictSudoku]):
+    """SudokuSolver subclass that solves sudoku puzzles using a constraint-based approach."""
 
     def solve(self, sudoku: DictSudoku = None) -> Optional[Sudoku]:
+        """Solve the puzzle by eliminating and deducing values recursively."""
         if sudoku is None:
             sudoku = self.sudoku
         if sudoku.is_solved():
@@ -107,35 +116,42 @@ ALL_CONSTRAINTS = ROW_COLUMN_CONSTRAINTS + ROW_NUMBER_CONSTRAINTS + COLUMN_NUMBE
 
 
 class DLXSolver(SudokuSolver[MatrixSudoku]):
+    """SudokuSolver subclass that solves sudoku puzzles using the dancing links (DLX) algorithm."""
 
     def __init__(self, sudoku: MatrixSudoku, event_listener: Optional[Callable[[Sudoku], None]] = None,
-                 minimize_branching: bool = False):
+                 minimize_branching: bool = False) -> None:
+        """Initialize a DLXSolver with the given sudoku, event listener, and optionally minimizing branching."""
         self.minimize_branching = minimize_branching
         self.dlx = None
         super().__init__(sudoku, event_listener)
 
     @property
     def possibilities_tried(self) -> int:
+        """Property that returns the number of possibilities tried by the solver."""
         if self.dlx is None:
             return 0
         return self.dlx.possibilities_tried
 
     @possibilities_tried.setter
     def possibilities_tried(self, value: int) -> None:
+        """Fake setter for the possibilities_tried property (does nothing)."""
         pass
 
     @property
     def backtracks(self) -> int:
+        """Property that returns the number of backtracks made by the solver."""
         if self.dlx is None:
             return 0
         return self.dlx.backtracks
 
     @backtracks.setter
     def backtracks(self, value: int) -> None:
+        """Fake setter for the backtracks property (does nothing)."""
         pass
 
     @staticmethod
     def get_constraint_index(constraint: AnyStr) -> int:
+        """Return the index in the list of all constraints for the given constraint."""
         first_part, first_value, second_part, second_value = constraint
         if first_part == 'R' and second_part == 'C':
             offset = 0
@@ -149,6 +165,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
         return offset + index
 
     def get_matching_constraint_indices(self, row: Row, column: int, value: int) -> Iterable[int]:
+        """Return the indices in the list of all constraints matching the given row, column, and value."""
         row_col_index = self.get_constraint_index(f'R{row.value}C{column}')
         row_num_index = self.get_constraint_index(f'R{row.value}#{value}')
         col_num_index = self.get_constraint_index(f'C{column}#{value}')
@@ -159,6 +176,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
         return row_col_index, row_num_index, col_num_index, box_num_index
 
     def get_matrix(self) -> List[List[int]]:
+        """Return a 2D constraint matrix from the solver's sudoku."""
         matrix = []
         for row, column in all_cells():
             cell_value = self.sudoku.get_cell_value(row, column)
@@ -176,6 +194,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
 
     @staticmethod
     def get_cell_dict_for_solution(solution: List[List[AnyStr]]) -> Dict[AnyStr, int]:
+        """Return a dict mapping cell names to values from the given solution."""
         cell_dict = {}
         for matched_constraints in solution:
             row = None
@@ -192,6 +211,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
         return cell_dict
 
     def get_solved_sudoku(self, solution: List[List[AnyStr]]) -> MatrixSudoku:
+        """Return a MatrixSudoku instance from the given solution."""
         cell_dict = self.get_cell_dict_for_solution(solution)
         cells = []
         for row in Row:
@@ -202,6 +222,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
         return MatrixSudoku(cells)
 
     def solve(self) -> Optional[Sudoku]:
+        """Solve the puzzle by delegating to DLX, then converting the solution back to a sudoku."""
         matrix = self.get_matrix()
         self.dlx = DLX(matrix, column_names=ALL_CONSTRAINTS, minimize_branching=self.minimize_branching)
         solution = self.dlx.search()
@@ -216,6 +237,7 @@ AlgorithmConfig = namedtuple('AlgorithmConfig', ['sudoku_type', 'solver_type'])
 
 
 class SolutionAlgorithm(Enum):
+    """Enumeration defining the supported sudoku solving algorithms."""
     BRUTE_FORCE = AlgorithmConfig(sudoku_type=MatrixSudoku, solver_type=BruteForceSolver)
     CONSTRAINT_BASED = AlgorithmConfig(sudoku_type=DictSudoku, solver_type=ConstraintBasedSolver)
     DANCING_LINKS = AlgorithmConfig(sudoku_type=MatrixSudoku, solver_type=DLXSolver)
@@ -224,6 +246,7 @@ class SolutionAlgorithm(Enum):
 def solve(sudoku: Optional[Sudoku] = None, sudoku_string: Optional[AnyStr] = None,
           algorithm: SolutionAlgorithm = SolutionAlgorithm.CONSTRAINT_BASED,
           event_listener: Optional[Callable[[Sudoku], None]] = None) -> Optional[Sudoku]:
+    """Solve the given sudoku (or sudoku string) using the given algorithm."""
     if sudoku is None and sudoku_string is None:
         raise ValueError('Must provide a Sudoku instance or a sudoku string')
 
@@ -239,6 +262,7 @@ def solve(sudoku: Optional[Sudoku] = None, sudoku_string: Optional[AnyStr] = Non
 
 
 def get_solver(sudoku: Sudoku, algorithm: SolutionAlgorithm) -> SudokuSolver:
+    """Return a SudokuSolver instance suitable for the given sudoku and algorithm."""
     sudoku_type, solver_type = algorithm.value
     if not isinstance(sudoku, sudoku_type):
         raise ValueError(f'Algorithm {algorithm.name} requires an instance of {sudoku_type}')

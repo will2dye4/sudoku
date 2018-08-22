@@ -1,3 +1,5 @@
+"""Graphical user interface for the sudoku program."""
+
 import threading
 import time
 import tkinter as tk
@@ -21,12 +23,14 @@ from sudoku.grid import (
 
 
 class SudokuApp(tk.Frame):
+    """Class containing state and graphics elements for rendering the UI."""
 
     DEFAULT_STEP_DELAY_MILLIS = 10
     DEFAULT_TICK_DELAY_MILLIS = 100
 
     def __init__(self, master: Optional[tk.Tk] = None, sudoku: Optional[Sudoku] = None,
-                 algorithm: Optional[SolutionAlgorithm] = None, delay_millis: int = DEFAULT_STEP_DELAY_MILLIS):
+                 algorithm: Optional[SolutionAlgorithm] = None, delay_millis: int = DEFAULT_STEP_DELAY_MILLIS) -> None:
+        """Initialize a SudokuApp instance."""
         if master is None:
             master = tk.Tk()
             master.title('Sudoku Solver')
@@ -55,6 +59,7 @@ class SudokuApp(tk.Frame):
         self.end_time = None
 
     def create_grid(self) -> None:
+        """Create graphics elements representing the grid of cells in the sudoku puzzle."""
         self.create_horizontal_line()
         for row_enum in Row:
             cells = []
@@ -91,21 +96,25 @@ class SudokuApp(tk.Frame):
 
     @staticmethod
     def create_horizontal_line() -> None:
+        """Create a horizontal line in the sudoku grid UI."""
         horizontal_line = tk.Label(width=544, height=1, bg='black', font=('Arial', 1))
         horizontal_line.pack(side='top')
 
     @staticmethod
     def create_vertical_line(row: tk.Frame) -> None:
+        """Create a vertical line in the sudoku grid UI."""
         vertical_line = tk.Label(row, width=1, height=31, bg='black', font=('Arial', 2))
         vertical_line.pack(side='left')
 
     @staticmethod
     def create_stats_display() -> tk.Label:
+        """Create a graphics element containing statistics about the progress of the sudoku solver."""
         stats = tk.Label(pady=5)
         stats.pack(side='top')
         return stats
 
     def update_grid(self, sudoku: Sudoku) -> None:
+        """Event listener for the sudoku solver that updates the UI when the puzzle changes."""
         try:
             for row, column in all_cells():
                 value = str(sudoku.get_cell_value(row, column) or '')
@@ -118,12 +127,14 @@ class SudokuApp(tk.Frame):
 
     @property
     def elapsed_time(self) -> float:
+        """Property that returns the time elapsed since the solver was started."""
         if self.start_time is not None:
             end_time = self.end_time or time.time()
             return end_time - self.start_time
         return 0
 
     def tick(self) -> None:
+        """Update the UI on a regular interval."""
         if self.solve_thread is not None and not self.solve_thread.is_alive():
             self.end_time = time.time()
             self.solve_thread = None
@@ -134,6 +145,7 @@ class SudokuApp(tk.Frame):
         self.after(self.DEFAULT_TICK_DELAY_MILLIS, self.tick)
 
     def run(self) -> None:
+        """Run the GUI."""
         if self.sudoku is not None:
             self.solver = get_solver(self.sudoku, self.algorithm)
             self.solver.event_listener = self.update_grid

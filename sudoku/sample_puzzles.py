@@ -1,3 +1,5 @@
+"""Module containing sample unsolved sudoku puzzles and a function for retrieving them."""
+
 import re
 
 from typing import AnyStr
@@ -7,12 +9,15 @@ HARD_PUZZLE_REGEX = re.compile(r'hard-(?P<num>\d+)')
 
 
 class InvalidPuzzleError(ValueError):
+    """Subclass of ValueError for invalid puzzle names."""
 
-    def __init__(self, puzzle_name: AnyStr, message: AnyStr):
+    def __init__(self, puzzle_name: AnyStr, message: AnyStr) -> None:
+        """Initialize an InvalidPuzzleError with a puzzle name and message."""
         super().__init__(f'Invalid puzzle name "{puzzle_name}": {message}')
 
 
 def get_puzzle_by_name(puzzle_name: AnyStr) -> AnyStr:
+    """Return a sudoku string for the given puzzle name."""
     if puzzle_name == 'half-solved':
         return half_solved
     if puzzle_name == 'mostly-solved':
