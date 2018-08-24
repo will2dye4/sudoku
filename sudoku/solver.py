@@ -178,8 +178,8 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
     def get_matrix(self) -> List[List[int]]:
         """Return a 2D constraint matrix from the solver's sudoku."""
         matrix = []
-        for row, column in all_cells():
-            cell_value = self.sudoku.get_cell_value(row, column)
+        for cell in all_cells():
+            cell_value = self.sudoku.get_cell_value(cell.row, cell.column)
             if cell_value is None:
                 candidates = Sudoku.CELL_VALUES
             else:
@@ -187,7 +187,7 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
             for matrix_candidate in Sudoku.CELL_VALUES:
                 matrix_row = [0] * len(ALL_CONSTRAINTS)
                 if matrix_candidate in candidates:
-                    for index in self.get_matching_constraint_indices(row, column, matrix_candidate):
+                    for index in self.get_matching_constraint_indices(cell.row, cell.column, matrix_candidate):
                         matrix_row[index] = 1
                 matrix.append(matrix_row)
         return matrix

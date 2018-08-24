@@ -116,11 +116,11 @@ class SudokuApp(tk.Frame):
     def update_grid(self, sudoku: Sudoku) -> None:
         """Event listener for the sudoku solver that updates the UI when the puzzle changes."""
         try:
-            for row, column in all_cells():
-                value = str(sudoku.get_cell_value(row, column) or '')
-                cell = self.cells[row.value - 1][column - 1]
-                if cell.get() != value:
-                    cell.set(value)
+            for cell in all_cells():
+                value = str(sudoku.get_cell_value(cell.row, cell.column) or '')
+                var = self.cells[cell.row.value - 1][cell.column - 1]
+                if var.get() != value:
+                    var.set(value)
             time.sleep(self.delay_millis / 1000)
         except:
             pass
