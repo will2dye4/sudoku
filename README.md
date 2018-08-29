@@ -96,7 +96,7 @@ example, the following three strings all represent the same puzzle to the progra
 By default, `sudoku` will use its fastest algorithm to solve the puzzle. This is a 
 **constraint-based** algorithm which uses the rules of sudoku to quickly deduce the solution
 to any input puzzle (assuming the puzzle has enough clues to be solved). The constraint-based
-algorithm typically solves a sudoku in less than 0.1 seconds (tested on a mid-2015 MacBook Pro).
+algorithm typically solves a sudoku in about 0.1 seconds (tested on a mid-2015 MacBook Pro).
 The implementation of the constraint-based solution algorithm is based heavily on the [prior work 
 of Peter Norvig](http://norvig.com/sudoku.html).
 
@@ -105,16 +105,18 @@ available algorithms are `brute-force` and `dlx`. A description of each of these
 
 The **brute-force** algorithm tries all possible values for all empty cells in the puzzle, and 
 therefore its running time is exponential in the number of empty cells, i.e., *O(9^n)* where
-*n* is the number of empty cells. As such, **this algorithm is NOT practical** for solving most 
-sudoku puzzles. In other words, in the worst case, this algorithm will take longer than the lifetime
-of the universe to solve a typical sudoku puzzle. Usage of the brute-force algorithm should be limited 
-to input puzzles that are already mostly solved.
+*n* is the number of empty cells. Given a sudoku puzzle designed specifically to thwart the brute-force
+strategy, this algorithm could take longer than the lifetime of the universe to find the solution!
+In practice, however, this algorithm typically takes about 10 minutes to solve even a fairly hard sudoku.
 
 The **DLX** algorithm uses the ["dancing links" algorithm](https://arxiv.org/pdf/cs/0011047.pdf) (due to 
 Don Knuth) to solve a sudoku puzzle  by mapping it onto an equivalent [exact cover](https://en.wikipedia.org/wiki/Exact_cover)
 problem and using a Python implementation of dancing links to solve the exact cover problem. This 
-algorithm is much faster than the brute-force algorithm but much slower than the constraint-based 
-algorithm, and its running time is on the order of 10 hours for a typical input puzzle.
+algorithm by far the slowest of the three, often taking over a day to solve a typical input puzzle.
+Profiling is needed to figure out where this algorithm is spending all of its time, since in theory this
+strategy should be at least as efficient (if not more efficient) than the brute-force approach.
+A re-implementation of the DLX algorithm in [Go](https://golang.org) may be developed at some point 
+in order to compare its performance against the (slow) Python implementation found here. 
 
 ### Sample Puzzles
 
