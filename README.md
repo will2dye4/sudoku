@@ -121,8 +121,8 @@ algorithm, and its running time is on the order of 10 hours for a typical input 
 The `sudoku.sample_puzzles` module provides some sample sudoku puzzles for purposes of demoing or
 testing the sudoku solver. The following puzzles are available:
 
-* **half-solved** - a sudoku puzzle with approximately half of the cells already solved with the correct values
-* **mostly-solved** - a sudoku puzzle with most of the cells (approximately 75%) already solved with the correct values
+* **empty-*n*** (1 &le; *n* &le; 64) - a sudoku puzzle with *n* empty cells (the remaining cells are already solved 
+  with the correct values); these are useful for functional and performance testing of the slower algorithms
 * **hard-*n*** (1 &le; *n* &le; 95) - a hard sudoku puzzle with only the initial clue cells already solved
 
 Instead of providing a sudoku string to solve when running the `sudoku` program, you may instead provide the name
