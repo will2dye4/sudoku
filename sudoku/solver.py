@@ -219,7 +219,9 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
             for column in columns():
                 matrix_row.append(Cell(row, column, cell_dict[f'{row.name}{column}']))
             cells.append(matrix_row)
-        return MatrixSudoku(cells)
+        sudoku = MatrixSudoku(cells)
+        sudoku.clue_cells = self.sudoku.clue_cells
+        return sudoku
 
     def solve(self) -> Optional[Sudoku]:
         """Solve the puzzle by delegating to DLX, then converting the solution back to a sudoku."""

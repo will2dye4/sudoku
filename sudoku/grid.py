@@ -71,7 +71,7 @@ class Sudoku(abc.ABC):
     CELL_VALUES = {1, 2, 3, 4, 5, 6, 7, 8, 9}
     GRID_SIDE_LENGTH = 9
     GRID_SIZE = 81
-    NON_DIGIT_REGEX = re.compile(r'\D')
+    NON_DIGIT_REGEX = re.compile(r'[^.0-9]+')
 
     def __init__(self) -> None:
         """Initialize a Sudoku."""
