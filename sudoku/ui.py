@@ -8,13 +8,11 @@ from typing import Optional
 
 from sudoku import (
     DictSudoku,
-    MatrixSudoku,
     Row,
     SolutionAlgorithm,
     Sudoku,
-    ds,
+    get_puzzle_by_name,
     get_solver,
-    ms,
 )
 from sudoku.grid import (
     all_cells,
@@ -161,20 +159,6 @@ class SudokuApp(tk.Frame):
 
 
 if __name__ == '__main__':
-    s = """
-            6 . 2 |4 8 . |9 3 7 
-            8 3 4 |6 . 9 |1 5 2 
-            9 7 1 |. 2 5 |8 6 4 
-            ------+------+------
-            . 6 7 |8 1 2 |5 . 3 
-            3 1 5 |7 9 . |6 2 8 
-            2 9 . |5 6 3 |. 7 1 
-            ------+------+------
-            . 8 . |. 3 . |2 . 5 
-            5 . 3 |1 . 6 |. 8 . 
-            7 . 9 |. 5 8 |3 1 6
-    """
-    ms2 = MatrixSudoku.from_string(s)  # TODO - does this produce an invalid solution??
-    ds2 = DictSudoku.from_string(s)
-    app = SudokuApp(sudoku=ds, delay_millis=1000)
+    puzzle_string = get_puzzle_by_name('hard-1')
+    app = SudokuApp(sudoku=DictSudoku.from_string(puzzle_string), delay_millis=1000)
     app.run()

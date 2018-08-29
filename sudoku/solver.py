@@ -27,6 +27,7 @@ from sudoku.grid import (
     all_cells,
     columns,
 )
+from sudoku.sample_puzzles import get_puzzle_by_name
 from sudoku.utils.event import EventDispatcher
 
 
@@ -62,6 +63,7 @@ class BruteForceSolver(SudokuSolver[MatrixSudoku]):
     def solve(self) -> Optional[Sudoku]:
         """Solve the puzzle by trying all possible values for all empty cells."""
         if self.sudoku.is_solved():
+            self.on_grid_changed(self.sudoku)
             return self.sudoku
         cell = self.sudoku.get_next_empty_cell()
         if cell is None:
@@ -270,37 +272,9 @@ def get_solver(sudoku: Sudoku, algorithm: SolutionAlgorithm) -> SudokuSolver:
 
 
 if __name__ == '__main__':
-    # sudoku = MatrixSudoku.from_string("""
-    #     +-------+-------+-------+
-    #     | 4 . . | . . . | 8 . 5 |
-    #     | . 3 . | . . . | . . . |
-    #     | . . . | 7 . . | . . . |
-    #     +-------+-------+-------+
-    #     | . 2 . | . . . | . 6 . |
-    #     | . . . | . 8 . | 4 . . |
-    #     | . . . | . 1 . | . . . |
-    #     +-------+-------+-------+
-    #     | . . . | 6 . 3 | . 7 . |
-    #     | 5 . . | 2 . . | . . . |
-    #     | 1 . 4 | . . . | . . . |
-    #     +-------+-------+-------+
-    # """)
-    sudoku = MatrixSudoku.from_string("""
-        6 . 2 |4 8 . |9 3 7 
-        8 3 4 |6 . 9 |1 5 2 
-        9 7 1 |. 2 5 |8 6 4 
-        ------+------+------
-        . 6 7 |8 1 2 |5 . 3 
-        3 1 5 |7 9 . |6 2 8 
-        2 9 . |5 6 3 |. 7 1 
-        ------+------+------
-        . 8 . |. 3 . |2 . 5 
-        5 . 3 |1 . 6 |. 8 . 
-        7 . 9 |. 5 8 |3 1 6
-    """)
-    solver = DLXSolver(sudoku, minimize_branching=True)
-    solved = solver.solve()
+    puzzle_string = get_puzzle_by_name('hard-1')
+    solved = solve(sudoku_string=puzzle_string)
     if solved:
-        print(str(solved))
+        print(solved)
     else:
         print('Failed to solve sudoku')
