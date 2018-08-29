@@ -40,9 +40,9 @@ def test_empty_cells_vs_solve_time(algorithm: SolutionAlgorithm) -> Iterable[Tri
 
 def test_solve_time(puzzle_strings: List[AnyStr], algorithm: SolutionAlgorithm, trial_tag: AnyStr = '') -> Iterable[Trial]:
     results = []
+    sudoku_type, solver_type = algorithm.value
 
     for i, puzzle_string in enumerate(puzzle_strings):
-        sudoku_type, solver_type = algorithm.value
         sudoku = sudoku_type.from_string(puzzle_string)
         empty_cells = Sudoku.GRID_SIZE - len(sudoku.clue_cells)
         solver = solver_type(sudoku)
