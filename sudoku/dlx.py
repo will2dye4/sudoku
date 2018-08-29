@@ -9,11 +9,14 @@ from dataclasses import (
 from typing import (
     Any,
     AnyStr,
+    Callable,
     Iterable,
     List,
     Optional,
     Union,
 )
+
+from sudoku.utils.event import EventDispatcher
 
 
 @dataclass(eq=False, repr=False)
@@ -70,12 +73,13 @@ class Column:
         return f'Column({self.name})'
 
 
-class DLX:
+class DLX(EventDispatcher[Any]):
     """Class representing the sparse matrix of DLX."""
 
     def __init__(self, matrix: List[List[int]], column_names: Optional[List[AnyStr]] = None,
-                 minimize_branching: bool = False) -> None:
+                 minimize_branching: bool = False, event_listener: Optional[Callable[[Any], None]] = None) -> None:
         """Initialize a DLX instance with the given matrix and column names, and optionally minimizing branching."""
+        super().__init__(event_listener=event_listener)
         self.root = Column(name='root')
         self.solution = {}
         self.minimize_branching = minimize_branching
@@ -136,12 +140,12 @@ class DLX:
 
     def search(self, k: int = 0) -> Optional[List[List[AnyStr]]]:
         """Perform the recursive search, returning a list of lists of columns that solve the exact cover problem."""
-        # print(f'searching, k = {k}')
         if self.root.right == self.root:
             return self.get_solution()
         column = self.get_next_column()
         self.cover(column)
         self.possibilities_tried += 1
+        self.on_state_changed(None)
         for row in self.traverse_down(column):
             self.solution[k] = row
             for next_column in self.traverse_right(row):
@@ -155,12 +159,10 @@ class DLX:
                 self.uncover(prev_column.column)
         self.uncover(column)
         self.backtracks += 1
-        # print(f'backtracking, k = {k}')
         return None
 
     def cover(self, column: Column) -> None:
         """'Cover' the given column as defined by the DLX algorithm."""
-        # print(f'covering {column.name}')
         column.right.left = column.left
         column.left.right = column.right
         for row in self.traverse_down(column):
@@ -172,7 +174,6 @@ class DLX:
 
     def uncover(self, column: Column) -> None:
         """'Uncover' the given column as defined by the DLX algorithm."""
-        # print(f'uncovering {column.name}')
         for row in self.traverse_up(column):
             for prev_column in self.traverse_left(row):
                 if self.minimize_branching:

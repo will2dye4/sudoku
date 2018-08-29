@@ -144,6 +144,11 @@ class SudokuMain:
         if remainder == 0:
             self.info('.', end='', flush=True)
 
+    def dlx_event_listener(self):
+            while True:
+                self.info('.', end='', flush=True)
+                time.sleep(2)
+
     def run_cli(self, sudoku: Sudoku) -> None:
         """Solve the puzzle and print output to the console."""
         self.trace('Starting puzzle:')

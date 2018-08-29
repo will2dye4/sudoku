@@ -27,31 +27,28 @@ from sudoku.grid import (
     all_cells,
     columns,
 )
+from sudoku.utils.event import EventDispatcher
 
 
 logger = logging.getLogger(__name__)
 
 
-T = TypeVar('T')
+T = TypeVar('T', DictSudoku, MatrixSudoku)
 
 
-class SudokuSolver(abc.ABC, Generic[T]):
+class SudokuSolver(abc.ABC, Generic[T], EventDispatcher[T]):
     """Abstract base class for a sudoku solver."""
 
     def __init__(self, sudoku: T, event_listener: Optional[Callable[[Sudoku], None]] = None) -> None:
         """Initialize a SudokuSolver with a sudoku puzzle and an optional event listener."""
+        super().__init__(event_listener=event_listener)
         self.sudoku = sudoku
-        self.event_listener = event_listener
         self.possibilities_tried = 0
         self.backtracks = 0
 
     def on_grid_changed(self, sudoku: Sudoku) -> None:
         """Invoke the event listener (if any) when the sudoku grid changes."""
-        if self.event_listener is not None:
-            try:
-                self.event_listener(sudoku)
-            except Exception:
-                logger.exception('caught exception while running event listener')
+        super().on_state_changed(sudoku)
 
     @abc.abstractmethod
     def solve(self) -> Optional[Sudoku]:
@@ -226,7 +223,8 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
     def solve(self) -> Optional[Sudoku]:
         """Solve the puzzle by delegating to DLX, then converting the solution back to a sudoku."""
         matrix = self.get_matrix()
-        self.dlx = DLX(matrix, column_names=ALL_CONSTRAINTS, minimize_branching=self.minimize_branching)
+        self.dlx = DLX(matrix, column_names=ALL_CONSTRAINTS, minimize_branching=self.minimize_branching,
+                       event_listener=self.event_listener)
         solution = self.dlx.search()
         if solution is None:
             return None
