@@ -101,7 +101,7 @@ class PerformanceTestRunner:
             if removed is None:
                 time.sleep(1)
 
-    def run(self):
+    def run(self) -> None:
         while not self.process_queue.empty():
             self.await_next_process_completion_or_timeout()
             process = self.process_queue.get()
@@ -110,7 +110,7 @@ class PerformanceTestRunner:
             self.processes[process.pid] = (process, time.time())
         self.await_all()
 
-    def submit(self, puzzle_string: AnyStr, trial_name: AnyStr):
+    def submit(self, puzzle_string: AnyStr, trial_name: AnyStr) -> None:
         self.process_queue.put(SudokuProcess(puzzle_string, self.algorithm, trial_name, self.results_queue))
 
     def get_results(self) -> List[Trial]:
