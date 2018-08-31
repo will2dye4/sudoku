@@ -71,7 +71,7 @@ class PerformanceTestRunner:
         self.count_format = f'0{len(str(len(puzzle_strings)))}d'  # ex: '02d' if len(puzzle_strings) is 2 digits
         self.processes = {}
         self.process_queue = queue.Queue()
-        self.results_queue = multiprocessing.Manager().Queue()
+        self.results_queue = multiprocessing.Queue()
 
     def await_next_process_completion_or_timeout(self) -> None:
         self.block_while(lambda: len(self.processes) == self.MAX_WORKERS)
