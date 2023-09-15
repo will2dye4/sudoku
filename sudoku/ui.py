@@ -79,7 +79,8 @@ class SudokuApp(tk.Frame):
                     relief=tk.RAISED,
                     textvariable=var,
                     font=('Arial', 18),
-                    fg='blue' if value else 'black'
+                    fg='blue' if value else 'black',
+                    bg='white'
                 )
                 cell.pack(side='left')
                 cells.append(var)
