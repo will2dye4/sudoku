@@ -1,0 +1,31 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'sudoku'
+version = '1.0.1'
+description = 'Solve sudoku puzzles using various algorithms'
+license = {file = 'LICENSE'}
+readme = 'README.md'
+authors = [
+    {name = 'William Dye'},
+]
+keywords = ['dancing links', 'dlx', 'sudoku', 'sudoku solver']
+requires-python = '>=3.7'
+
+[project.optional-dependencies]
+test = [
+    'pytest ~= 3.7.2',
+]
+
+[project.scripts]
+ku = 'sudoku.__main__:ku'
+sudoku = 'sudoku.__main__:main'
+
+[project.urls]
+Repository = 'https://github.com/will2dye4/sudoku.git'
+
+[tool.setuptools.packages.find]
+include = ['sudoku*']
+namespaces = false
