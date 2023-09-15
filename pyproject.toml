@@ -3,8 +3,8 @@ requires = ['setuptools']
 build-backend = 'setuptools.build_meta'
 
 [project]
-name = 'sudoku'
-version = '1.0.1'
+name = 'sudoku-ui'
+version = '1.0.2'
 description = 'Solve sudoku puzzles using various algorithms'
 license = {file = 'LICENSE'}
 readme = 'README.md'

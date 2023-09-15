@@ -12,7 +12,7 @@ ensure that you have a semi-recent version of Python installed before proceeding
 Run the following command in a shell (a UNIX-like environment is assumed):
 
 ```
-$ pip install sudoku
+$ pip install sudoku-ui
 ```
 
 The package does not have any dependencies besides Python itself. If you wish to sandbox your
