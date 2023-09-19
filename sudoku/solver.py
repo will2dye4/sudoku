@@ -3,7 +3,7 @@
 import abc
 import logging
 
-from collections import namedtuple
+from dataclasses import dataclass
 from enum import Enum
 from typing import (
     AnyStr,
@@ -14,6 +14,7 @@ from typing import (
     List,
     Optional,
     TypeVar,
+    Type,
 )
 
 from sudoku.dlx import DLX
@@ -235,7 +236,10 @@ class DLXSolver(SudokuSolver[MatrixSudoku]):
         return self.get_solved_sudoku(solution)
 
 
-AlgorithmConfig = namedtuple('AlgorithmConfig', ['sudoku_type', 'solver_type'])
+@dataclass
+class AlgorithmConfig:
+    sudoku_type: Type[Sudoku]
+    solver_type: Type[SudokuSolver]
 
 
 class SolutionAlgorithm(Enum):
@@ -252,23 +256,20 @@ def solve(sudoku: Optional[Sudoku] = None, sudoku_string: Optional[AnyStr] = Non
     if sudoku is None and sudoku_string is None:
         raise ValueError('Must provide a Sudoku instance or a sudoku string')
 
-    sudoku_type, solver_type = algorithm.value
-
     if sudoku is None:
-        sudoku = sudoku_type.from_string(sudoku_string)
-    elif not isinstance(sudoku, sudoku_type):
-        raise ValueError(f'Algorithm {algorithm.name} requires an instance of {sudoku_type}')
+        sudoku = algorithm.value.sudoku_type.from_string(sudoku_string)
+    elif not isinstance(sudoku, algorithm.value.sudoku_type):
+        raise ValueError(f'Algorithm {algorithm.name} requires an instance of {algorithm.value.sudoku_type}')
 
-    solver = solver_type(sudoku, event_listener=event_listener)
+    solver = algorithm.value.solver_type(sudoku, event_listener=event_listener)
     return solver.solve()
 
 
 def get_solver(sudoku: Sudoku, algorithm: SolutionAlgorithm) -> SudokuSolver:
     """Return a SudokuSolver instance suitable for the given sudoku and algorithm."""
-    sudoku_type, solver_type = algorithm.value
-    if not isinstance(sudoku, sudoku_type):
-        raise ValueError(f'Algorithm {algorithm.name} requires an instance of {sudoku_type}')
-    return solver_type(sudoku)
+    if not isinstance(sudoku, algorithm.value.sudoku_type):
+        raise ValueError(f'Algorithm {algorithm.name} requires an instance of {algorithm.value.sudoku_type}')
+    return algorithm.value.solver_type(sudoku)
 
 
 if __name__ == '__main__':
