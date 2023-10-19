@@ -1,5 +1,7 @@
 # sudoku - Python sudoku solver
 
+[![PyPI Version](https://img.shields.io/pypi/v/sudoku-ui)](https://pypi.org/project/sudoku-ui/) [![Python Version](https://img.shields.io/pypi/pyversions/sudoku-ui)](https://www.python.org/downloads/) [![PyPI Downloads](https://img.shields.io/pypi/dm/sudoku-ui)](https://pypi.org/project/sudoku-ui/) [![MIT License](https://img.shields.io/github/license/will2dye4/sudoku)](https://github.com/will2dye4/sudoku/blob/master/LICENSE)
+
 This package contains utilities for solving [sudoku](https://en.wikipedia.org/wiki/Sudoku) puzzles
 using a variety of different algorithms.
 
